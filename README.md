@@ -1,2 +1,2 @@
 # scarab
-Entity-based simulation framework in Python.
+An entity-based simulation framework in Python.
