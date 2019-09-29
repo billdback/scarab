@@ -227,7 +227,7 @@ class Entity(PropertyWrapper):
         # TODO this is slow.  May want to copy over during init.
         event_handlers_for_class = Entity._event_handlers.get(type(self).__name__, None)
         if not event_handlers_for_class:
-            raise KeyError(f"No handlers implemented for class {type(self).__name}")
+            raise KeyError(f"No handlers implemented for class {type(self).__name__}")
 
         if event.name == ENTITY_CREATED_EVENT:
             event_handlers = event_handlers_for_class.get_entity_created_handlers(entity_name=event.entity_name)
@@ -243,7 +243,11 @@ class Entity(PropertyWrapper):
                 # eh(self, event, args, kwargs)
                 eh(self, event)
         else:
-            raise KeyError(f"No handler for event {event.name} implemented for class {type(self).__name__}")
+            if event.name in (ENTITY_CREATED_EVENT, ENTITY_CHANGED_EVENT, ENTITY_DESTROYED_EVENT):
+                raise KeyError(f"No handler of type {event.name} for entity {event.entity_name} "
+                               f"implemented for class {type(self).__name__}")
+            else:
+                raise KeyError(f"No handler for event {event.name} implemented for class {type(self).__name__}")
 
     def get_properties(self):
         """

@@ -231,9 +231,11 @@ class EntityChangedEvent(Event):
 
         self.entity_name = entity_name
         self.entity_guid = entity_guid
-        self.entity_properties = {}
         if entity_properties:
-            self.entity_properties.update(entity_properties)
+            # set the properties as first order.
+            for prop, val in entity_properties.items():
+                self.__dict__[prop] = val
+
         Event.__init__(self, name=ENTITY_CHANGED_EVENT)
 
 
