@@ -20,7 +20,6 @@ This module contains base classes for Events and Commands as well as common Even
 from abc import ABC, abstractmethod
 import datetime
 import re
-from typing import List
 
 now = datetime.datetime.now()  # shortcut for getting the current time.
 

@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import unittest
 
-from scarab.logging import log, ListLogger, FileLogger
+from scarab.loggers import log, ListLogger, FileLogger
 
 
 class TestLogging(unittest.TestCase):
