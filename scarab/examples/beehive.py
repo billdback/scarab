@@ -161,17 +161,34 @@ class OutsideTemperature(Entity):
         Creates a new outside temperature.  The range of temperatures is fixed and will vary throughout the day.
         :param min_temp:  The minimum temperature of the beehive to maintain in degrees F.  Default 50.0F
         :type min_temp: float
-        :param max_temp:  The maxiumum temperature of the beehive to maintain in degrees F.  Default 80.0F
+        :param max_temp:  The maximum temperature of the beehive to maintain in degrees F.  Default 80.0F
         :type max_temp: float
         """
-        assert min_temp and isinstance(min_temp, float)
-        assert max_temp and isinstance(max_temp, float)
+        assert min_temp is not None
+        assert max_temp is not None
 
-        self.min_temp = min_temp
-        self.max_temp = max_temp
-        self.temperature = (min_temp + max_temp) / 2  # todo - figure out to set at the min for midnight (start time)
+        self._min_temp = float(min_temp)
+        self._max_temp = float(max_temp)
+
+        # Temp only varies by time of day, so just create a an array that pre-calculates the temps.
+        self.__increment_change = (self._max_temp - self._min_temp) / (24*60/2)  # increment over half days up and down.
+        self.__minute_temps = []
+        for minute in range(0,int(12*60)):  # calculate increasing temps
+            self.__minute_temps.append(self._min_temp + self.__increment_change * minute)
+        for minute in range(0,int(12*60)):  # calculate decreasing
+            self.__minute_temps.append(self._max_temp - self.__increment_change * minute)
+
+        self.current_temp = self.__minute_temps[0]
 
         Entity.__init__(self, name="outside_temperature")
+
+    @time_update_event_handler
+    def handle_time_update(self, nte):
+        """Handles the time changing to calculate the temp of the hive.
+        :param nte: New time event.
+        :type nte: NewTimeEvent
+        """
+        self.current_temp = self.__minute_temps[nte.sim_time % len(self.__minute_temps)]
 
 
 class BeehiveDisplay(Entity):

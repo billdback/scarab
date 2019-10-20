@@ -174,3 +174,19 @@ class TestBeehiveEntity(unittest.TestCase):
         beehive.handle_time_update(NewTimeEvent(sim_time=1))
         self.assertEqual(12.5, beehive.current_temp)
 
+
+class TestOutsideTemp(unittest.TestCase):
+    """Test the outside temp."""
+
+    def test_temp_changes(self):
+        """Tests changing temps during the day."""
+        ot = OutsideTemperature(min_temp=0, max_temp=720)  # one degree for each minute for easy testing.
+        self.assertEqual(0, ot.current_temp)
+        ot.handle_time_update(NewTimeEvent(sim_time=720))
+        self.assertEqual(720, ot.current_temp)
+        ot.handle_time_update(NewTimeEvent(sim_time=1440))
+        self.assertEqual(0, ot.current_temp)
+        ot.handle_time_update(NewTimeEvent(sim_time=440))
+        self.assertEqual(440, ot.current_temp)
+        ot.handle_time_update(NewTimeEvent(sim_time=820))
+        self.assertEqual(620, ot.current_temp)
