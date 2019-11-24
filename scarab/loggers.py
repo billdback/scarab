@@ -19,9 +19,92 @@ This module contains base classes for Events and Commands as well as common Even
 
 from abc import ABC, abstractmethod
 import datetime
-import re
 
 now = datetime.datetime.now()  # shortcut for getting the current time.
+
+
+class Loggers:
+
+    def __init__(self):
+        """
+        Manages all loggers.
+        """
+        self.__loggers = {}
+
+    def add_logger(self, logger, topic):
+        """
+        Adds a logger to the list of loggers.
+        :param logger: The logger to add.
+        :type logger: BaseLogger
+        :param topic: Topic to log on.
+        :type topic: str
+        :return: None
+        """
+        assert isinstance(logger, BaseLogger)
+
+        if isinstance(topic, str):
+            self.__add_logger_for_topic(topic=topic, logger=logger)
+        elif isinstance(topic, list):
+            for t in topic:
+                self.__add_logger_for_topic(topic=t, logger=logger)
+        else:
+            raise ValueError(f"{topic} must be a string or list.")
+
+    def __add_logger_for_topic(self, topic, logger) -> None:
+        """
+        Adds a logger for an individual topic.  Helper for loggers that get added for multiple topics.
+        :param logger: The logger to add.
+        :type logger: BaseLogger
+        :param topic: Topic to log on.
+        :type topic: str
+        :return: None
+        """
+        if topic not in self.__loggers.keys():
+            self.__loggers[topic] = []
+        self.__loggers[topic].append(logger)
+
+    def remove_logger_topic(self, topic):
+        """
+        Removes any loggers for a given topic.
+        :param topic: The topic to remove all loggers for.
+        :return: list of loggers that were removed.
+        :rtype: list of BaseLogger
+        """
+        self.__loggers.pop(topic)
+
+    def clear(self):
+        """
+        Clears all loggers.
+        :return: None
+        """
+        self.__loggers = {}
+
+    def log(self, topic, message):
+        """
+        Logs a message to a topic.
+        :param topic: Topic to log to.
+        :type topic: str
+        :param message: Message to log.
+        :type message: str
+        :return: None
+        """
+        for logger in self.__loggers.get(topic, []):
+            logger.log(topic, message)
+
+
+global_loggers = Loggers()
+
+
+def log(topic, message):
+    """
+    Helper to log a message to the global loggers.
+    :param topic: The topic to log to.
+    :type topic: str
+    :param message:  The message to log.
+    :type message: str
+    :return: None
+    """
+    global_loggers.log(topic=topic, message=message)
 
 
 class BaseLogger(ABC):
@@ -29,29 +112,17 @@ class BaseLogger(ABC):
     Base class for all loggers.
     """
 
-    def __init__(self, topics, date_format="%d-%m-%Y %H:%M:%S"):
+    def __init__(self, date_format="%d-%m-%Y %H:%M:%S"):
         """
         Creates a new logger and registers the logger for logging messages.
-        :param topics: One or more strings that define the topics to be handled by this logger.
-        :type topics: str or list of str
+        :param date_format: Format to use when writing log messages.
+        :type date_format: str
         :return: None
         """
-        assert topics  # don't allow to be None.
         assert date_format  # don'e allow to be None.  Doesn't check for valid format.
-
-        self._topics = []
-        if isinstance(topics, list):
-            for t in topics:
-                assert isinstance(t, str)
-                self._topics.append(t)
-        else:
-            assert isinstance(topics, str)
-            self._topics.append(topics)
-
         self._date_format = date_format
 
         super().__init__()
-        _add_logger(self)
 
     @abstractmethod
     def log(self, topic, message):
@@ -82,47 +153,18 @@ class BaseLogger(ABC):
         return "[{0}] {1}: {2}".format(now.strftime("%d-%m-%Y %H:%M:%S"), topic, message)
 
 
-loggers = list()  # list of loggers.  TODO determine if this should be a dictionary to speed things up.
-
-
-def _add_logger(logger):
-    """
-    Adds a logger to the list of loggers.
-    :param logger:  A message logger.
-    :type logger: BaseLogger
-    :return: None
-    """
-    assert (isinstance(logger, BaseLogger))
-    loggers.append(logger)
-
-
-def log(topic, message):
-    """
-    Logs a message for a given topic based on registered loggers.
-    :param topic:  The topic to log to.
-    :type topic: str
-    :param message:  The message to log for the given topic.
-    :type message: str
-    :return: None
-    """
-    for l in loggers:
-        for t in l._topics:
-            if re.match(t, topic):
-                l.log(t, message)
-
-
 class ListLogger(BaseLogger):
     """
     Logs the messages to a list of strings.  Note that this buffers unless clear() is called, so it can use up an
     unlimited amount of memory.
     """
 
-    def __init__(self, topics):
+    def __init__(self):
         """
         Creates a logger that logs to all messages to a list for later retrieval.
         """
         self._logs = []
-        super().__init__(topics=topics)
+        super().__init__()
 
     def log(self, topic, message):
         """
@@ -164,12 +206,12 @@ class StdOutLogger(BaseLogger):
     Logs the messages to standard out.
     """
 
-    def __init__(self, topics):
+    def __init__(self):
         """
         Creates a logger that logs to all messages to a list for later retrieval.
         """
         self._logs = []
-        super().__init__(topics=topics)
+        super().__init__()
 
     def log(self, topic, message):
         """
@@ -189,11 +231,9 @@ class FileLogger(BaseLogger):
     TODO add rollover support for large file handling.
     """
 
-    def __init__(self, topics, filename):
+    def __init__(self, filename):
         """
         Creates a logger that logs to all messages to a list for later retrieval.
-        :param topics: The topic or topics to log to.
-        :type topics: str or list of str
         :param filename: The name (path) of the file to log to.
         :type filename: str
         :return: None
@@ -201,7 +241,7 @@ class FileLogger(BaseLogger):
         self._logs = []
         self._filename = filename
         self._file = None  # only open if there was something written.  Also supports multiple files and rollover.
-        super().__init__(topics=topics)
+        super().__init__()
 
     def log(self, topic, message):
         """

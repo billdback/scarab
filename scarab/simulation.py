@@ -22,10 +22,12 @@ TODO There may be opportunities for performance improvement in many of these cla
 from copy import deepcopy
 import re
 import sys
+import time
 
-from scarab.util import get_uuid
-from scarab.events import *
 from scarab.entities import Entity
+from scarab.events import *
+from scarab.loggers import log
+from scarab.util import get_uuid
 
 
 class TimeEventQueue:
@@ -281,7 +283,7 @@ class EventMediator:
                 self._entity_destroyed_interest[entity_name] = entity_list
             entity_list.append(entity)
 
-        entity.simulation = self
+        entity._simulation = self
 
     def deregister_entity(self, entity):
         """
@@ -313,7 +315,7 @@ class EventMediator:
             if entity_list:  # shouldn't happen, but just in case.
                 entity_list.remove(entity)
 
-        entity.simulation = None
+        entity._simulation = None
 
     def send_event(self, event):
         """
@@ -323,25 +325,19 @@ class EventMediator:
         :return: None
         """
         if event.name == ENTITY_CREATED_EVENT:
-            entity_list = self._entity_created_interest.get(event.entity_name, None)
-            if entity_list:
-                for e in entity_list:
-                    e.handle_event(event=event)
+            entity_list = self._entity_created_interest.get(event.entity.name, None)
         elif event.name == ENTITY_CHANGED_EVENT:
-            entity_list = self._entity_changed_interest.get(event.entity_name, None)
-            if entity_list:
-                for e in entity_list:
-                    e.handle_event(event=event)
+            entity_list = self._entity_changed_interest.get(event.entity.name, None)
         elif event.name == ENTITY_DESTROYED_EVENT:
-            entity_list = self._entity_destroyed_interest.get(event.entity_name, None)
-            if entity_list:
-                for e in entity_list:
-                    e.handle_event(event=event)
+            entity_list = self._entity_destroyed_interest.get(event.entity.name, None)
         else:
             entity_list = self._named_event_interest.get(event.name, None)
-            if entity_list:
-                for e in entity_list:
-                    e.handle_event(event=event)
+
+        if entity_list:
+            for e in entity_list:
+                log(EVENT_LOGGING,
+                    f"sending event {event.name} to {e.guid} at time {event.sim_time}:  {event.__dict__}")
+                e.handle_event(event=event)
 
 
 class EntityState:
@@ -410,22 +406,50 @@ class EntityState:
         return state
 
 
+ENTITY_LOGGING = "scarab.entities"
+EVENT_LOGGING = "scarab.events"
+SIMULATION_LOGGING = "scarab.simulations"
+
+
+# TODO add testing for this class.
+class RemoteEntity(PropertyWrapper):
+    """
+    Represents an external entity (maybe on a different system).  Operations cannot be performed on this entity, just
+    querying the properties.
+    """
+
+    def __init__(self, entity):
+        """
+        Creates a new remote entity with the same properties as the source entity, but no methods.
+        :param entity: The entity to copy.
+        """
+        assert entity and isinstance(entity, Entity)
+        # copy all public attributes to the wrapper.
+        for attr in entity.__dict__.keys():
+            if not attr.startswith("_"):
+                self.__dict__[attr] = deepcopy(entity.__dict__[attr])
+        super().__init__()
+
+
 class Simulation:
     """
     Class that represents a simulation with entities.  It manages the time and lifecycle of entities, and routes
-    events to the interested enties and other simulation objects.
+    events to the interested entities and other simulation objects.
     """
 
-    def __init__(self, time_stepped=False, event_priorities=None):
+    def __init__(self, time_stepped=False, cycle_length=0, event_priorities=None):
         """
         Creates a new simulation.
         :param time_stepped: Indicates if the simulation is time stepped (i.e. one increment at a time) or not.  If
         False, then the next time sent out is the next time in the queue.
         :type time_stepped: bool
+        :param cycle_length: Length of a cycle in seconds.  Minimum length of a cycle.
+        :type cycle_length: int
         :param event_priorities: Priorities of simulation events.  These fall *after* the standard events.
         :type event_priorities: list of str
         """
         self.time_stepped = time_stepped
+        self.cycle_length = cycle_length
         self._entities = {}        # entities in the simulation.
         self._previous_state = {}  # records the previous state of entities for comparison if they changed.
         all_event_priorities = [SIMULATION_EVENTS, ENTITY_EVENTS, TIME_EVENTS]
@@ -438,6 +462,8 @@ class Simulation:
         self._previous_time = -1
 
         self.license = [
+            "--------------------------------------------------------------------------",
+            "",
             "Copyright (C) 2019 William D. Back",
             "",
             "This program is free software: you can redistribute it and/or modify",
@@ -451,8 +477,12 @@ class Simulation:
             "GNU General Public License for more details.",
             "",
             "You should have received a copy of the GNU General Public License",
-            "along with this program.  If not, see <https://www.gnu.org/licenses/>."
+            "along with this program.  If not, see <https://www.gnu.org/licenses/>.",
+            "",
+            "--------------------------------------------------------------------------"
         ]
+
+        self.print_license()
 
     def print_license(self):
         """
@@ -505,9 +535,10 @@ class Simulation:
 
         # The simulation sets the guids.
         entity.guid = get_uuid()
+        self.log(ENTITY_LOGGING, f"Adding entity type {entity.name} with GUID {entity.guid}")
+
         self._entities[entity.guid] = entity
-        self.queue_event(EntityCreatedEvent(entity_name=entity.name, entity_guid=entity.guid,
-                                            entity_properties=entity.get_properties()))
+        self.queue_event(EntityCreatedEvent(entity=RemoteEntity(entity)))
 
         self._event_mediator.register_entity(entity=entity)
 
@@ -521,11 +552,13 @@ class Simulation:
         :type entity: Entity
         :return: None
         """
+        self.log(ENTITY_LOGGING, f"Removing entity type {entity.name} with GUID {entity.guid}")
+
         self._entities.pop(entity.guid)
         self._event_mediator.deregister_entity(entity=entity)
         self._previous_state.pop(entity.guid)
 
-        self.__send_event(EntityDestroyedEvent(entity_name=entity.name, entity_guid=entity.guid))
+        self.__send_event(EntityDestroyedEvent(entity=RemoteEntity(entity)))
 
     def advance(self, cycles=1):
         """
@@ -536,19 +569,24 @@ class Simulation:
         """
         assert cycles and cycles > 0, f"Invalid cycles amount of {cycles}"  # sanity check to avoid cycling to the past.
 
+        log(SIMULATION_LOGGING, f"Advancing the simulation {cycles} times.")
+
         nbr_cycles = 0
 
         while nbr_cycles < cycles:
 
+            start_cycle_clock_time = time.time()
+
             current_time = self._event_queue.next_time()
 
             # If there are no events in the queue, cycle one in any case.
+            previous_time = self._previous_time
             if not current_time:  # this causes the same behavior for time stepped and jumped simulations.
                 current_time = self._previous_time + 1
             self._previous_time = current_time
 
             # send a time update event for the next time.
-            self.__send_event(NewTimeEvent(sim_time=current_time))
+            self.__send_event(NewTimeEvent(previous_time=previous_time, new_time=current_time))
 
             # send all of the events for the current time.
             while self._event_queue.next_time() == current_time:
@@ -559,6 +597,11 @@ class Simulation:
 
             nbr_cycles += 1
 
+            elapsed_time = time.time() - start_cycle_clock_time
+            while elapsed_time < self.cycle_length:
+                time.sleep(1)
+                elapsed_time = time.time() - start_cycle_clock_time
+
     def __send_change_events(self):
         """
         Go through all the entities and send out change events.
@@ -568,7 +611,7 @@ class Simulation:
         for entity in self._entities.values():
             diffs = self._previous_state[entity.guid].compare_and_update(entity)
             if len(diffs):
-                evt = EntityChangedEvent(entity_name=entity.name, entity_guid=entity.guid, entity_properties=diffs)
+                evt = EntityChangedEvent(entity=entity, changed_properties=diffs)
                 self.__send_event(evt)  # Send out notification at the end of the cycle, so other entities can update.
 
     def __send_event(self, event):
@@ -577,4 +620,16 @@ class Simulation:
         :param event: The event to send.
         :return: Nothing
         """
+        self.log(EVENT_LOGGING, f"sending event {event.name} at sim time {event.sim_time}: {event}")
         self._event_mediator.send_event(event=event)
+
+    def log(self, topic, message) -> None:
+        """
+        Logs a message for the given (previous) sim time.
+        :param topic: The topic to log to.
+        :type topic: str
+        :param message: The message to log.
+        :type message: str
+        :return:  None
+        """
+        log(topic=topic, message=f"{self._previous_time}: {message}")

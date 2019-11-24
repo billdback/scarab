@@ -20,7 +20,17 @@ This module contains utility functions and classes for creating simulations.
 """
 
 import uuid
+import sys
 import time
+
+
+def eprint(*args, **kwargs):
+    """
+    Prints to standard error similar to regular print.
+    :param args:  Positional arguments.
+    :param kwargs:  Keyword arguments.
+    """
+    print(*args, file=sys.stderr, **kwargs)
 
 
 def get_uuid():

@@ -20,6 +20,7 @@ import unittest
 from scarab.events import Property, Event, Message
 from scarab.events import EntityCreatedEvent, EntityDestroyedEvent, EntityChangedEvent, NewTimeEvent
 from scarab.events import ENTITY_CREATED_EVENT, ENTITY_DESTROYED_EVENT, ENTITY_CHANGED_EVENT, NEW_TIME_EVENT
+from scarab.entities import Entity
 
 
 class TestEvent(Event):
@@ -109,27 +110,24 @@ class TestEvents(unittest.TestCase):
     def test_common_events(self):
         """Just tests creation of common events."""
 
-        event = EntityCreatedEvent(entity_name="test.entity", entity_guid="abc123")
+        event = EntityCreatedEvent(entity=Entity(name="test.entity"))
         self.assertEqual(event.name, ENTITY_CREATED_EVENT)
-        self.assertEqual(event.entity_guid, "abc123")
-        self.assertEqual(event.entity_name, "test.entity")
+        self.assertEqual(event.entity.name, "test.entity")
 
-        event = EntityDestroyedEvent(entity_name="test.entity", entity_guid="abc123")
+        event = EntityDestroyedEvent(entity=Entity(name="test.entity"))
         self.assertEqual(event.name, ENTITY_DESTROYED_EVENT)
-        self.assertEqual(event.entity_guid, "abc123")
+        self.assertEqual(event.entity.name, "test.entity")
 
-        # TODO pass a wrapper that represents and entity with properties for ease of use.
-        event = EntityChangedEvent(entity_name="test.entity", entity_guid="abc123",
-                                   entity_properties={"property1": 1, "property2": "two"})
+        event = EntityChangedEvent(entity=Entity(name="test.entity"), changed_properties={"property1": 1})
         self.assertEqual(event.name, ENTITY_CHANGED_EVENT)
-        self.assertEqual(event.entity_guid, "abc123")
-        self.assertEqual(event.property1, 1)
-        # self.assertEqual(event.entity_properties.property1, 1)
-        self.assertEqual(event.property2, "two")
+        self.assertEqual(event.entity.name, "test.entity")
+        self.assertEqual(event.changed_properties["property1"], 1)
 
-        event = NewTimeEvent(sim_time=12)
+        event = NewTimeEvent(previous_time=11, new_time=12)
         self.assertEqual(event.name, NEW_TIME_EVENT)
         self.assertEqual(event.sim_time, 12)
+        self.assertEqual(event.previous_time, 11)
+        self.assertEqual(event.new_time, 12)
 
 
 class TestCommands(unittest.TestCase):

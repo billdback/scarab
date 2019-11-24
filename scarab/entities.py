@@ -17,9 +17,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 This module contains base classes for Events and Commands as well as common Events and Commands used in the framework.
 """
 
-# TODO - consider using wrapt instead.  Would require a dependency and install.  See https://pypi.org/project/wrapt/
 from functools import wraps
-# import inspect
+import inspect
 
 from scarab.events import *
 
@@ -187,7 +186,7 @@ class Entity(PropertyWrapper):
     _event_handlers = {}  # EventHandlerContainer()
 
     @classmethod
-    def _get_handler_container(cls, handler):
+    def get_handler_container(cls, handler):
         handler_cls = handler.__qualname__.split(".")[0]  # assumes not in a subclass.
         handlers = Entity._event_handlers.get(handler_cls, None)
         if not handlers:
@@ -209,9 +208,9 @@ class Entity(PropertyWrapper):
 
         self.name = name
         self.guid = guid
-        self.simulation = None  # set by the simulation after adding.
+        self._simulation = None  # set by the simulation after adding.
 
-        PropertyWrapper.__init__(self)
+        super().__init__()
 
     # def handle_event(self, event, *args, **kwargs):
     def handle_event(self, event):
@@ -229,22 +228,37 @@ class Entity(PropertyWrapper):
         if not event_handlers_for_class:
             raise KeyError(f"No handlers implemented for class {type(self).__name__}")
 
+        # Add the handling for special event types.
         if event.name == ENTITY_CREATED_EVENT:
-            event_handlers = event_handlers_for_class.get_entity_created_handlers(entity_name=event.entity_name)
+            event_handlers = event_handlers_for_class.get_entity_created_handlers(entity_name=event.entity.name)
+            if event_handlers:
+                for eh in event_handlers:
+                    eh(self, event.entity)
         elif event.name == ENTITY_CHANGED_EVENT:
-            event_handlers = event_handlers_for_class.get_entity_changed_handlers(entity_name=event.entity_name)
+            event_handlers = event_handlers_for_class.get_entity_changed_handlers(entity_name=event.entity.name)
+            if event_handlers:
+                for eh in event_handlers:
+                    eh(self, event.entity, event.changed_properties)
         elif event.name == ENTITY_DESTROYED_EVENT:
-            event_handlers = event_handlers_for_class.get_entity_destroyed_handlers(entity_name=event.entity_name)
+            event_handlers = event_handlers_for_class.get_entity_destroyed_handlers(entity_name=event.entity.name)
+            if event_handlers:
+                for eh in event_handlers:
+                    eh(self, event.entity)
+        elif event.name == NEW_TIME_EVENT:
+            event_handlers = event_handlers_for_class.get_event_handlers(event.name)
+            if event_handlers:
+                for eh in event_handlers:
+                    eh(self, event.previous_time, event.new_time)
         else:
             event_handlers = event_handlers_for_class.get_event_handlers(event.name)
+            if event_handlers:
+                for eh in event_handlers:
+                    eh(self, event)
 
-        if event_handlers:
-            for eh in event_handlers:
-                # eh(self, event, args, kwargs)
-                eh(self, event)
-        else:
+        # Handle error scenarios where the event was delivered, but there are no handlers.
+        if not event_handlers:
             if event.name in (ENTITY_CREATED_EVENT, ENTITY_CHANGED_EVENT, ENTITY_DESTROYED_EVENT):
-                raise KeyError(f"No handler of type {event.name} for entity {event.entity_name} "
+                raise KeyError(f"No handler of type {event.name} for entity {event.entity.name} "
                                f"implemented for class {type(self).__name__}")
             else:
                 raise KeyError(f"No handler for event {event.name} implemented for class {type(self).__name__}")
@@ -265,7 +279,7 @@ class Entity(PropertyWrapper):
         :return: The events this entity is interested in.
         :rtype: EventInterest
         """
-        return self._get_handler_container(self.__class__).get_event_interest()
+        return self.get_handler_container(self.__class__).get_event_interest()
 
 # Decorators for entities to tie into the simulation framework. -------------------------------------------------------
 
@@ -273,11 +287,13 @@ class Entity(PropertyWrapper):
 def event_handler(event_name):
     """
     Handles events based on the event name.
+    Expected signature: function_name (self, event)
     :param event_name:  Name of the event to handle.
     :return: Decorator function to call for a given event.
     """
     def decorator(handler):
-        Entity._get_handler_container(handler=handler).add_event_handler(event_name=event_name, handler=handler)
+        assert handler and len(inspect.signature(handler).parameters) == 2, "Incorrect number of handler arguments"
+        Entity.get_handler_container(handler=handler).add_event_handler(event_name=event_name, handler=handler)
 
         @wraps(handler)
         def f(self, *args, **kwargs):
@@ -290,11 +306,13 @@ def event_handler(event_name):
 def entity_created_event_handler(entity_name):
     """
     Handles events for the creation of entities with a given type.
+    Expected signature: function_name (self, entity)
     :param entity_name:  Type of the entity that was created.
     :return: Decorator function to call for the event.
     """
     def decorator(handler):
-        Entity._get_handler_container(handler=handler).\
+        assert handler and len(inspect.signature(handler).parameters) == 2, "Incorrect number of handler arguments"
+        Entity.get_handler_container(handler=handler).\
             add_entity_created_event_handler(entity_name=entity_name, handler=handler)
 
         @wraps(handler)
@@ -308,11 +326,13 @@ def entity_created_event_handler(entity_name):
 def entity_changed_event_handler(entity_name):
     """
     Handles events for the changes of entities with a given type.
+    Expected signature: function_name (self, entity, changed_properties)
     :param entity_name:  Type of the entity that was changed.
     :return: Decorator function to call for the event.
     """
     def decorator(handler):
-        Entity._get_handler_container(handler=handler).\
+        assert handler and len(inspect.signature(handler).parameters) == 3, "Incorrect number of handler arguments"
+        Entity.get_handler_container(handler=handler).\
             add_entity_changed_event_handler(entity_name=entity_name, handler=handler)
 
         @wraps(handler)
@@ -326,11 +346,14 @@ def entity_changed_event_handler(entity_name):
 def entity_destroyed_event_handler(entity_name):
     """
     Handles events for the destruction of entities with a given type.
+    Expected signature: function_name (self, entity)
     :param entity_name:  Type of the entity that was destroyed.
     :return: Decorator function to call for the event.
     """
+
     def decorator(handler):
-        Entity._get_handler_container(handler=handler).\
+        assert handler and len(inspect.signature(handler).parameters) == 2, "Incorrect number of handler arguments"
+        Entity.get_handler_container(handler=handler).\
             add_entity_destroyed_event_handler(entity_name=entity_name, handler=handler)
 
         @wraps(handler)
@@ -341,14 +364,15 @@ def entity_destroyed_event_handler(entity_name):
     return decorator
 
 
-# TODO see if this can just call event_handler.
 def simulation_shutdown_handler(handler):
     """
     Handles simulation shutdown.
+    Expected signature: function_name (self, event)
     :param handler:  Method to call for simulation shutdown.
     :return: Decorator function to call for a simulation shutdown.
     """
-    Entity._get_handler_container(handler=handler).add_event_handler(SIMULATION_SHUTDOWN, handler)
+    assert handler and len(inspect.signature(handler).parameters) == 2, "Incorrect number of handler arguments"
+    Entity.get_handler_container(handler=handler).add_event_handler(SIMULATION_SHUTDOWN, handler)
 
     @wraps(handler)
     def f(self, *args, **kwargs):
@@ -360,10 +384,12 @@ def simulation_shutdown_handler(handler):
 def time_update_event_handler(handler):
     """
     Handles time update events.
+    Expected signature: function_name (self, previous_time, new_time)
     :param handler:  Method to call for time updates.
     :return: Decorator function to call for a time update.
     """
-    Entity._get_handler_container(handler=handler).add_event_handler(NEW_TIME_EVENT, handler)
+    assert handler and len(inspect.signature(handler).parameters) == 3, "Incorrect number of handler arguments"
+    Entity.get_handler_container(handler=handler).add_event_handler(NEW_TIME_EVENT, handler)
 
     @wraps(handler)
     def f(self, *args, **kwargs):

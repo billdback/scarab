@@ -18,17 +18,28 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import unittest
 
-from scarab.loggers import log, ListLogger, FileLogger
+from scarab.loggers import global_loggers, log, ListLogger, FileLogger
 
 
 class TestLogging(unittest.TestCase):
     """Tests logging."""
 
+    def setUp(self) -> None:
+        """
+        Make sure the global set of loggers is empty.
+        :return: None
+        """
+        global_loggers.clear()
+
     def test_list_logging(self):
         """Tests logging with the list logger."""
-        ll1 = ListLogger(topics="topic1")
-        ll2 = ListLogger(topics=["topic2", "topic3"])
-        ll3 = ListLogger(topics="topic3")
+        ll1 = ListLogger()
+        ll2 = ListLogger()
+        ll3 = ListLogger()
+
+        global_loggers.add_logger(logger=ll1, topic="topic1")
+        global_loggers.add_logger(logger=ll2, topic=["topic2", "topic3"])
+        global_loggers.add_logger(logger=ll3, topic="topic3")
 
         log(topic="topic1", message="message 1")
         log(topic="topic2", message="message 2")
@@ -53,7 +64,8 @@ class TestLogging(unittest.TestCase):
     def test_file_logger(self):
         """Tests logging to a file."""
         test_file = "test.log"
-        fl = FileLogger(topics="topic1", filename=test_file)
+        fl = FileLogger(filename=test_file)
+        global_loggers.add_logger(logger=fl, topic="topic1")
 
         self.assertFalse(os.path.exists(test_file))
 
@@ -71,4 +83,3 @@ class TestLogging(unittest.TestCase):
             self.assertTrue("] topic1: message 2" in line)
 
         os.remove(test_file)
-

@@ -111,7 +111,7 @@ class PropertyWrapper:
         elif key in super.__dict__:
             attr = super.__dict__[key]
         else:
-            raise AttributeError(f"Unknown property {key}")
+            raise AttributeError(f"Unknown property {key} for class {self}")
 
         if isinstance(attr, Property):
             return attr.value
@@ -173,69 +173,52 @@ NEW_TIME_EVENT = "scarab.time.new"
 class EntityCreatedEvent(Event):
     """Creates an event to indicate that an entity was created."""
 
-    def __init__(self, entity_name, entity_guid, entity_properties=None):
+    def __init__(self, entity):
         """
         Indicates that an entity was created.
-        :param entity_name: Type of entity that was created.
-        :type entity_name: str
-        :param entity_guid: Unique ID for the entity.
-        :type entity_guid: str
-        :param entity_properties:  Properties for the entity.
+        :param entity: The entity that was created.
+        :type entity: RemoteEntity
         """
         # Make sure some value has been provided.
-        assert entity_name
-        assert entity_guid
+        assert entity
 
-        self.entity_name = entity_name
-        self.entity_guid = entity_guid
-        self.entity_properties = entity_properties
+        self.entity = entity
         Event.__init__(self, name=ENTITY_CREATED_EVENT)
 
 
 class EntityDestroyedEvent(Event):
     """Creates an event to indicate that an entity was destroyed."""
 
-    def __init__(self, entity_name, entity_guid):
+    def __init__(self, entity):
         """
         Indicates that an entity was destroyed.
-        :param entity_name: Type of entity that was created.
-        :type entity_name: str
-        :param entity_guid: Unique ID for the entity.
-        :type entity_guid: str
+        :param entity: The entity that was created.
+        :type entity: RemoteEntity
         """
         # Make sure some value has been provided.
-        assert entity_name
-        assert entity_guid
+        assert entity
 
-        self.entity_name = entity_name
-        self.entity_guid = entity_guid
+        self.entity = entity
         Event.__init__(self, name=ENTITY_DESTROYED_EVENT)
 
 
 class EntityChangedEvent(Event):
     """Creates an event to indicate that an entity was changed."""
 
-    def __init__(self, entity_name, entity_guid, entity_properties=None):
+    def __init__(self, entity, changed_properties):
         """
-        Indicates that an entity was changed.
-        :param entity_name: Type of entity that was created.
-        :type entity_name: str
-        :param entity_guid: Unique ID for the entity.
-        :type entity_guid: str
-        :param entity_properties:  Properties that changed for the entity.
-        :type entity_properties: dict
+        Indicates that an entity was destroyed.
+        :param entity: The entity that was created.
+        :type entity: RemoteEntity
+        :param changed_properties: List of properties that were changed.
+        :type changed_properties: list of str
         """
         # Make sure some value has been provided.
-        assert entity_name
-        assert entity_guid
+        assert entity
+        assert changed_properties
 
-        self.entity_name = entity_name
-        self.entity_guid = entity_guid
-        if entity_properties:
-            # set the properties as first order.
-            for prop, val in entity_properties.items():
-                self.__dict__[prop] = val
-
+        self.entity = entity
+        self.changed_properties = changed_properties
         Event.__init__(self, name=ENTITY_CHANGED_EVENT)
 
 
@@ -252,16 +235,21 @@ class SimulationShutdownEvent(Event):
 class NewTimeEvent(Event):
     """Creates an event to indicate that time was updated."""
 
-    def __init__(self, sim_time):
+    def __init__(self, previous_time, new_time):
         """
         Indicates that time changed.
-        :param sim_time: The new time in the simulation.
-        :type sim_time: int
+        :param previous_time: The new time in the simulation.
+        :type previous_time: int
+        :param new_time: The new time in the simulation.
+        :type new_time: int
         """
         # Make sure some value has been provided.
-        assert sim_time is not None, f"Unexpected sim_time of {sim_time}"
+        assert previous_time is not None, f"Unexpected previous_time of {previous_time}"
+        assert new_time is not None, f"Unexpected new_time of {new_time}"
 
-        Event.__init__(self, name=NEW_TIME_EVENT, sim_time=sim_time)
+        self.previous_time = previous_time
+        self.new_time = new_time
+        Event.__init__(self, name=NEW_TIME_EVENT, sim_time=new_time)
 
 # Commands. ----------------------------------------------------------------------------
 

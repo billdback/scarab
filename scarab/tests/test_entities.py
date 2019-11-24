@@ -29,7 +29,8 @@ class TestEntity(Entity):
         self.basic_event_handler_called = False
         self.simulation_shutdown_called = False
         self.time_event_handler_called = False
-        self.sim_time = 0
+        self.new_time = 0
+        self.previous_time = -1
 
         self.event2_handler1_called = False
         self.event2_handler2_called = False
@@ -38,52 +39,63 @@ class TestEntity(Entity):
         self.entity1_changed = False
         self.entity1_destroyed = False
 
-        Entity.__init__(self, name="testunit.test-entity")
+        super().__init__(name="testunit.test-entity")
 
     @event_handler(event_name="event1")
     def handle_event_one(self, event):
-        assert(event is not None)
+        assert event
+
         self.basic_event_handler_called = True
 
     @event_handler(event_name="event2")
     def handle_event_two1(self, event):
-        assert(event is not None)
+        assert event
+
         self.event2_handler1_called = True
 
     @event_handler(event_name="event2")
     def handle_event_two2(self, event):
-        assert(event is not None)
+        assert event
+
         self.event2_handler2_called = True
 
     @simulation_shutdown_handler
     def handle_simulation_shutdown(self, shutdown_event):
         """Handles simulation shutting down events."""
-        assert(shutdown_event is not None)
+        assert shutdown_event
+
         self.simulation_shutdown_called = True
 
     @time_update_event_handler
-    def handle_time_event(self, time_event):
+    def handle_time_event(self, previous_time, new_time):
         """Handles time events."""
-        assert(time_event is not None)
+        assert previous_time
+        assert new_time
+
         self.time_event_handler_called = True
-        self.sim_time = time_event.sim_time
+        self.previous_time = previous_time
+        self.new_time = new_time
 
     @entity_created_event_handler("entity1")
-    def handle_entity_one_created(self, entity_created_event):
+    def handle_entity_one_created(self, entity):
         """Handles EntityCreatedEvent"""
-        assert (entity_created_event is not None)
+        assert entity
+
         self.entity1_created = True
 
     @entity_changed_event_handler("entity1")
-    def handle_entity_one_changed(self, entity_changed_event):
+    def handle_entity_one_changed(self, entity, changed_properties):
         """Handles EntityCreatedEvent"""
-        assert (entity_changed_event is not None)
+        assert entity
+        assert changed_properties
+
         self.entity1_changed = True
 
     @entity_destroyed_event_handler("entity1")
-    def handle_entity_one_destroyed(self, entity_destroyed_event):
+    def handle_entity_one_destroyed(self, entity):
         """Handles EntityCreatedEvent"""
-        assert (entity_destroyed_event is not None)
+        assert entity
+
         self.entity1_destroyed = True
 
 
@@ -92,12 +104,12 @@ class TestEntityCallMe(Entity):
 
     def __init__(self):
         self.i_was_called = False
-        Entity.__init__(self, name="testunit.test-entity-call")
+        super().__init__(name="testunit.test-entity-call")
 
     @event_handler(event_name="call_test_event")
     def handle_an_event(self, event):
         """Handles an event """
-        assert(event is not None)
+        assert event
         self.i_was_called = True
 
 
@@ -106,7 +118,9 @@ class TestEntityDontCallMe(Entity):
 
     def __init__(self):
         self.i_was_called = False
-        Entity.__init__(self, name="testunit.test-entity-dont-call")
+        super().__init__(name="testunit.test-entity-dont-call")
+        self._other_entity = None
+        self._change_event = None
 
     @entity_created_event_handler("testunit.test-entity-to-change")
     def handle_entity_changed(self, entity):
@@ -114,9 +128,36 @@ class TestEntityDontCallMe(Entity):
         self._other_entity = entity
 
     @entity_changed_event_handler("testunit.test-entity-to-change")
-    def handle_entity_changed(self, entity_changed_event):
+    def handle_entity_changed(self, entity_changed_event, changed_properties):
         """Called when the entity changed."""
         self._change_event = entity_changed_event
+
+
+class EntityWithSimpleNames(Entity):
+    """
+    Tests short names of handler items to make sure the handlers are name independent for standard handlers.
+    Just the basic handlers.  This test looks for parameter names, so doesn't really do much.
+    """
+
+    def __init__(self):
+        super().__init__(name="simple-name")
+
+    @time_update_event_handler
+    def handle_new_time(self, pt, nt):
+        """Handles the previous and new times."""
+        pass
+
+    @entity_created_event_handler(entity_name="entity1")
+    def handle_entity_created(self, ent):
+        pass
+
+    @entity_changed_event_handler(entity_name="entity1")
+    def handle_entity_changed(self, ent, props):
+        pass
+
+    @entity_destroyed_event_handler(entity_name="entity1")
+    def handle_entity_destroyed(self, ent):
+        pass
 
 
 class TestEntities(unittest.TestCase):
@@ -165,24 +206,24 @@ class TestEntities(unittest.TestCase):
     def test_time_update_event_handling(self):
         """Tests that time update events are handled properly."""
         te = TestEntity()
-        self.assertEqual(0, te.sim_time)
+        self.assertEqual(0, te.new_time)
 
         # This would be called from the framework.
-        te.handle_event(NewTimeEvent(sim_time=2))
+        te.handle_event(NewTimeEvent(previous_time=1, new_time=2))
         self.assertTrue(te.time_event_handler_called)
-        self.assertEqual(2, te.sim_time)
-
+        self.assertEqual(1, te.previous_time)
+        self.assertEqual(2, te.new_time)
 
     def test_entity_changes(self):
         """Tests creating, updating, and destroying and entity."""
         te = TestEntity()
 
         # This would be called from the framework.
-        te.handle_event(EntityCreatedEvent(entity_name="entity1", entity_guid="123"))
+        te.handle_event(EntityCreatedEvent(entity=Entity(name="entity1")))
         self.assertTrue(te.entity1_created)
-        te.handle_event(EntityChangedEvent(entity_name="entity1", entity_guid="123"))
+        te.handle_event(EntityChangedEvent(entity=Entity(name="entity1"), changed_properties={"property1": 1}))
         self.assertTrue(te.entity1_changed)
-        te.handle_event(EntityDestroyedEvent(entity_name="entity1", entity_guid="123"))
+        te.handle_event(EntityDestroyedEvent(entity=Entity(name="entity1")))
         self.assertTrue(te.entity1_destroyed)
 
     def test_calling_correct_entities(self):
@@ -199,3 +240,12 @@ class TestEntities(unittest.TestCase):
 
         with self.assertRaises(KeyError):
             te2.handle_event(Event(name="call_test_event"))
+
+    def test_simple_name_handlers(self):
+        """Tests handlers that have simple versions of argument names."""
+        te = EntityWithSimpleNames()
+
+        te.handle_event(NewTimeEvent(previous_time=0, new_time=1))
+        te.handle_event(EntityCreatedEvent(entity=Entity(name="entity1")))
+        te.handle_event(EntityChangedEvent(entity=Entity(name="entity1"), changed_properties={"property1": 1}))
+        te.handle_event(EntityDestroyedEvent(entity=Entity(name="entity1")))

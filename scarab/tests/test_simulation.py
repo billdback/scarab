@@ -39,28 +39,26 @@ class TestEntityOne(Entity):
 
     @event_handler(event_name="test.event.one")
     def event_one_handler(self, event):
-        assert (event.name == "test.event.one")
+        assert event.name == "test.event.one"
         self.event_one_handled = True
 
     @entity_created_event_handler("test.entity.two")
-    def handle_entity_two_created(self, event):
+    def handle_entity_two_created(self, entity):
         """Handles EntityCreatedEvent"""
-        assert (event.name == ENTITY_CREATED_EVENT)
-        assert (event.entity_name == "test.entity.two")
+        assert entity.name == "test.entity.two"
         self.entity2_created = True
 
     @entity_changed_event_handler("test.entity.two")
-    def handle_entity_two_changed(self, event):
+    def handle_entity_two_changed(self, entity, changed_properties):
         """Handles EntityCreatedEvent"""
-        assert (event.name == ENTITY_CHANGED_EVENT)
-        assert (event.entity_name == "test.entity.two")
+        assert entity.name == "test.entity.two"
+        assert changed_properties
         self.entity2_changed = True
 
     @entity_destroyed_event_handler("test.entity.two")
-    def handle_entity_two_destroyed(self, event):
+    def handle_entity_two_destroyed(self, entity):
         """Handles EntityCreatedEvent"""
-        assert (event.name == ENTITY_DESTROYED_EVENT)
-        assert (event.entity_name == "test.entity.two")
+        assert entity.name == "test.entity.two"
         self.entity2_destroyed = True
 
 
@@ -80,30 +78,28 @@ class TestEntityTwo(Entity):
         Entity.__init__(self, name="test.entity.two")
 
     @event_handler(event_name="test.event.two")
-    def event_two_handler(self, event):
+    def event_two_handler(self, entity):
         """This entity is only interested in the second event."""
-        assert (event.name == "test.event.two")
+        assert entity.name == "test.event.two"
         self.event_two_handled = True
 
     @entity_created_event_handler("test.entity.one")
-    def handle_entity_one_created(self, event):
+    def handle_entity_one_created(self, entity):
         """Handles EntityCreatedEvent"""
-        assert (event.name == ENTITY_CREATED_EVENT)
-        assert (event.entity_name == "test.entity.one")
+        assert entity.name == "test.entity.one"
         self.entity1_created = True
 
     @entity_changed_event_handler("test.entity.one")
-    def handle_entity_one_changed(self, event):
+    def handle_entity_one_changed(self, entity, changed_properties):
         """Handles EntityCreatedEvent"""
-        assert (event.name == ENTITY_CHANGED_EVENT)
-        assert (event.entity_name == "test.entity.one")
+        assert entity.name == "test.entity.one"
+        assert changed_properties
         self.entity1_changed = True
 
     @entity_destroyed_event_handler("test.entity.one")
-    def handle_entity_one_destroyed(self, event):
+    def handle_entity_one_destroyed(self, entity):
         """Handles EntityCreatedEvent"""
-        assert (event.name == ENTITY_DESTROYED_EVENT)
-        assert (event.entity_name == "test.entity.one")
+        assert entity.name == "test.entity.one"
         self.entity1_destroyed = True
 
 
@@ -124,7 +120,7 @@ class EntityChangeWatcher(Entity):
 
     def __init__(self):
         """Create new change watcher."""
-        self.change_event = None
+        self.change_entity = None
         self.other_entity = None
 
         Entity.__init__(self, name="testunit.watch-test-entity-to-change")
@@ -135,9 +131,9 @@ class EntityChangeWatcher(Entity):
         self.other_entity = entity
 
     @entity_changed_event_handler(entity_name="testunit.watch-test-entity-to-change")
-    def watched_entity_changed(self, event):
+    def watched_entity_changed(self, entity, changed_properties):
         """Gets called if the watched entity changes."""
-        self.change_event = event
+        self.change_entity = entity
 
 
 class EntityTimeEventCatcher(Entity):
@@ -149,9 +145,9 @@ class EntityTimeEventCatcher(Entity):
         Entity.__init__(self, name="testunit.time.event.catcher")
 
     @time_update_event_handler
-    def handle_time_update(self, tue):
-        self.times_updated.append(tue.sim_time)
-        self.current_time = tue.sim_time
+    def handle_time_update(self, previous_time, new_time):
+        self.times_updated.append(new_time)
+        self.current_time = new_time
 
 # Actual tests -------------------------------------------------------------------------------------------------------
 
@@ -208,7 +204,7 @@ class TestSimulation(unittest.TestCase):
         sim.add_entity(te_watcher)
 
         sim.advance(1)
-        self.assertTrue(te_watcher.other_entity is not None)
+        self.assertTrue(te_watcher.other_entity)
 
         te_change.property1 = 2
         te_change.property2 = "hi"
@@ -216,8 +212,8 @@ class TestSimulation(unittest.TestCase):
         te_change.__dict__["property4"] = "new_property"
         sim.advance(1)
 
-        self.assertEqual(te_watcher.other_entity.entity_guid, te_watcher.change_event.entity_guid)
-        self.assertEqual(te_watcher.other_entity.entity_name, te_watcher.change_event.entity_name)
+        self.assertEqual(te_watcher.other_entity.guid, te_watcher.change_entity.guid)
+        self.assertEqual(te_watcher.other_entity.name, te_watcher.change_entity.name)
 
     def test_destroy_entity(self):
         """Tests destroying an entity."""
