@@ -18,8 +18,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from setuptools import setup, find_packages
 
 setup(name='scarab',
-      version='0.1',
+      version='1.0',
       description='This package contains the framework for an entity-based event simulation framework.',
+      python_requires='>3.6',
       author='William D Back',
       author_email='billback@mac.com',
       license='GPL3',
