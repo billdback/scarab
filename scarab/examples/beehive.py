@@ -86,7 +86,7 @@ class Beehive(Entity):
         :returns: None
         """
         self.current_temp = start_temp
-        self.outside_temp = start_temp
+        self._outside_temp = start_temp
         self.buzzing_impact = buzzing_impact
         self.fanning_impact = fanning_impact
 
@@ -125,7 +125,7 @@ class Beehive(Entity):
         :return: None
         """
         assert changed_properties
-        self.outside_temp = outside_temperature.current_temp
+        self._outside_temp = outside_temperature.current_temp
 
     @time_update_event_handler
     def handle_time_update(self, previous_time, new_time):
@@ -147,10 +147,10 @@ class Beehive(Entity):
         # The impact of the outside temp is 20% of the difference.  So the warmer it gets, the more the hive wants
         # to heat.  Reverse for cooler.
         outside_temp_impact = 0
-        if self.outside_temp > self.current_temp:
-            outside_temp_impact = .2 * (self.outside_temp - self.current_temp)
+        if self._outside_temp > self.current_temp:
+            outside_temp_impact = .2 * (self._outside_temp - self.current_temp)
         else:
-            outside_temp_impact = .2 * (self.current_temp - self.outside_temp)
+            outside_temp_impact = .2 * (self.current_temp - self._outside_temp)
 
         self.current_temp = self.current_temp + outside_temp_impact + total_bee_impact
 
@@ -226,17 +226,17 @@ class OutsideTemperature(Entity):
         assert min_temp is not None
         assert max_temp is not None
 
-        self._min_temp = float(min_temp)
-        self._max_temp = float(max_temp)
+        self.min_temp = float(min_temp)
+        self.max_temp = float(max_temp)
 
         # Temp only varies by time of day, so just create a an array that pre-calculates the temps.
-        self.__increment_change = (self._max_temp - self._min_temp) / (
+        self.__increment_change = (self.max_temp - self.min_temp) / (
                     24 * 60 / 2)  # increment over half days up and down.
         self.__minute_temps = []
         for minute in range(0, int(12 * 60)):  # calculate increasing temps
-            self.__minute_temps.append(self._min_temp + self.__increment_change * minute)
+            self.__minute_temps.append(self.min_temp + self.__increment_change * minute)
         for minute in range(0, int(12 * 60)):  # calculate decreasing
-            self.__minute_temps.append(self._max_temp - self.__increment_change * minute)
+            self.__minute_temps.append(self.max_temp - self.__increment_change * minute)
 
         self.current_temp = self.__minute_temps[0]
 
@@ -261,8 +261,8 @@ class BeehiveDisplay(Entity):
         """
         Creates a new beehive display.
         """
-        self.beehive = None
-        self.outside_temp = None
+        self._beehive = None
+        self._outside_temp = None
         super().__init__(name="behive_display")
 
         # mins are set to a very large number so they will be properly set the next time.
@@ -283,7 +283,7 @@ class BeehiveDisplay(Entity):
         :param beehive: The beehive that changed.
         :type beehive: Entity
         """
-        self.beehive = beehive
+        self._beehive = beehive
 
     @entity_changed_event_handler(entity_name="beehive")
     def handle_beehive_changed(self, beehive, changed_properties):
@@ -294,17 +294,17 @@ class BeehiveDisplay(Entity):
         :type changed_properties: list of str
         """
         assert changed_properties is not None
-        self.beehive = beehive
+        self._beehive = beehive
 
-        self.min_hive_temp = min(self.min_hive_temp, self.beehive.current_temp)
-        self.max_hive_temp = max(self.max_hive_temp, self.beehive.current_temp)
+        self.min_hive_temp = min(self.min_hive_temp, self._beehive.current_temp)
+        self.max_hive_temp = max(self.max_hive_temp, self._beehive.current_temp)
 
-        self.min_number_bees = min(self.min_number_bees, self.beehive.number_bees)
-        self.max_number_bees = max(self.max_number_bees, self.beehive.number_bees)
-        self.min_number_bees_fanning = min(self.min_number_bees_fanning, self.beehive.number_bees_fanning)
-        self.max_number_bees_fanning = max(self.max_number_bees_fanning, self.beehive.number_bees_fanning)
-        self.min_number_bees_buzzing = min(self.min_number_bees_buzzing, self.beehive.number_bees_buzzing)
-        self.max_number_bees_buzzing = max(self.max_number_bees_buzzing, self.beehive.number_bees_buzzing)
+        self.min_number_bees = min(self.min_number_bees, self._beehive.number_bees)
+        self.max_number_bees = max(self.max_number_bees, self._beehive.number_bees)
+        self.min_number_bees_fanning = min(self.min_number_bees_fanning, self._beehive.number_bees_fanning)
+        self.max_number_bees_fanning = max(self.max_number_bees_fanning, self._beehive.number_bees_fanning)
+        self.min_number_bees_buzzing = min(self.min_number_bees_buzzing, self._beehive.number_bees_buzzing)
+        self.max_number_bees_buzzing = max(self.max_number_bees_buzzing, self._beehive.number_bees_buzzing)
 
     @entity_changed_event_handler(entity_name="outside_temperature")
     def handle_temp_changed(self, temp, changed_properties):
@@ -316,9 +316,9 @@ class BeehiveDisplay(Entity):
         :return: None
         """
         assert changed_properties
-        self.outside_temp = temp.current_temp
-        self.min_outside_temp = min(self.min_outside_temp, self.outside_temp)
-        self.max_outside_temp = max(self.max_outside_temp, self.outside_temp)
+        self._outside_temp = temp.current_temp
+        self.min_outside_temp = min(self.min_outside_temp, self._outside_temp)
+        self.max_outside_temp = max(self.max_outside_temp, self._outside_temp)
 
     @time_update_event_handler
     def handle_time_update(self, previous_time, new_time):
@@ -335,23 +335,23 @@ class BeehiveDisplay(Entity):
             print(f"Update from time {previous_time} to {new_time}")
 
             print(f"Temperature status:")
-            if not self.outside_temp:
+            if not self._outside_temp:
                 print("\tunknown")
             else:
-                print(f"\toutside temp: {self.outside_temp:.1f}"
+                print(f"\toutside temp: {self._outside_temp:.1f}"
                       f" (min: {self.min_outside_temp:.1f} max: {self.max_outside_temp:.1f})")
-                print(f"\thive temp: {self.beehive.current_temp:.1f}"
+                print(f"\thive temp: {self._beehive.current_temp:.1f}"
                       f" (min: {self.min_hive_temp:.1f} max: {self.max_hive_temp:.1f})")
 
             print(f"Bees:")
-            if not self.beehive:
+            if not self._beehive:
                 print("\tunknown")
             else:
-                print(f"\ttotal bees: {self.beehive.number_bees}"
+                print(f"\ttotal bees: {self._beehive.number_bees}"
                       f" (min: {self.min_number_bees} max: {self.max_number_bees})")
-                print(f"\tbees buzzing: {self.beehive.number_bees_buzzing}"
+                print(f"\tbees buzzing: {self._beehive.number_bees_buzzing}"
                       f" (min: {self.min_number_bees_buzzing} max: {self.max_number_bees_buzzing})")
-                print(f"\tbees fanning: {self.beehive.number_bees_fanning}"
+                print(f"\tbees fanning: {self._beehive.number_bees_fanning}"
                       f" (min: {self.min_number_bees_fanning} max: {self.max_number_bees_fanning})")
             print("")
 

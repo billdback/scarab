@@ -135,12 +135,12 @@ class TestBeehiveEntity(unittest.TestCase):
         """Tests changes in temperature."""
         beehive = Beehive(start_temp=10, buzzing_impact=.5, fanning_impact=.25)
 
-        self.assertEqual(beehive.outside_temp, beehive.current_temp)
+        self.assertEqual(beehive._outside_temp, beehive.current_temp)
         ot = OutsideTemperature()
         ot.current_temp = 20
         beehive.handle_event(EntityChangedEvent(entity=ot, changed_properties=["current_temp"]))
         self.assertEqual(10, beehive.current_temp)
-        self.assertEqual(20, beehive.outside_temp)
+        self.assertEqual(20, beehive._outside_temp)
 
     def test_time_update(self):
         """Tests handling time updates."""
@@ -172,7 +172,7 @@ class TestBeehiveEntity(unittest.TestCase):
         beehive.handle_time_update(previous_time=0, new_time=1)
         self.assertEqual(11.25, beehive.current_temp)
         beehive.handle_time_update(previous_time=0, new_time=1)
-        self.assertEqual(12.5, beehive.current_temp)
+        self.assertEqual(12.75, beehive.current_temp)
 
 
 class TestOutsideTemp(unittest.TestCase):
