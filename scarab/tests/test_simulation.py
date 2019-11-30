@@ -279,3 +279,7 @@ class TestSimulation(unittest.TestCase):
     def test_resume_simulation(self):
         """Tests starting the simulation."""
         pass
+
+
+if __name__ == '__main__':
+    unittest.main()

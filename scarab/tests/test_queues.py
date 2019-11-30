@@ -141,3 +141,6 @@ class TestPriorityQueue(unittest.TestCase):
         self.assertEqual(peq.next().name, "low-10")
         self.assertIsNone(peq.next_time())
 
+
+if __name__ == '__main__':
+    unittest.main()

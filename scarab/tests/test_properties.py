@@ -91,5 +91,6 @@ class TestPropertyWrapper(unittest.TestCase):
         self.assertEqual(aw.one, "one")
         self.assertEqual(aw.two, 2)
 
+
 if __name__ == '__main__':
     unittest.main()

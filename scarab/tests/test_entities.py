@@ -249,3 +249,7 @@ class TestEntities(unittest.TestCase):
         te.handle_event(EntityCreatedEvent(entity=Entity(name="entity1")))
         te.handle_event(EntityChangedEvent(entity=Entity(name="entity1"), changed_properties={"property1": 1}))
         te.handle_event(EntityDestroyedEvent(entity=Entity(name="entity1")))
+
+
+if __name__ == '__main__':
+    unittest.main()

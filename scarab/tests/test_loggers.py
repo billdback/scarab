@@ -83,3 +83,7 @@ class TestLogging(unittest.TestCase):
             self.assertTrue("] topic1: message 2" in line)
 
         os.remove(test_file)
+
+
+if __name__ == '__main__':
+    unittest.main()

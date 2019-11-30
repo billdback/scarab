@@ -32,5 +32,6 @@ class TestUUID(unittest.TestCase):
             self.assertTrue(uuid not in uuids)
             uuids.append(uuid)
 
+
 if __name__ == '__main__':
     unittest.main()
