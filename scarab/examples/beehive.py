@@ -49,7 +49,7 @@ class Bee(Entity):
         self.fan_temp = fan_temp
         self.is_buzzing = False
         self.is_fanning = False
-        Entity.__init__(self, name="bee")
+        super().__init__(name="bee")
 
     @entity_changed_event_handler(entity_name="beehive")
     def handle_temperature_change(self, beehive, changed_properties):
@@ -96,7 +96,7 @@ class Beehive(Entity):
 
         self.__known_bees = {}  # keeps track of bees so we know their state.
 
-        Entity.__init__(self, name="beehive")
+        super().__init__(name="beehive")
 
     def get_number_bees_buzzing(self):
         """
@@ -240,7 +240,7 @@ class OutsideTemperature(Entity):
 
         self.current_temp = self.__minute_temps[0]
 
-        Entity.__init__(self, name="outside_temperature")
+        super().__init__(name="outside_temperature")
 
     @time_update_event_handler
     def handle_time_update(self, previous_time, new_time):
@@ -261,9 +261,9 @@ class BeehiveDisplay(Entity):
         """
         Creates a new beehive display.
         """
-        Entity.__init__(self, name="behive_display")
         self.beehive = None
         self.outside_temp = None
+        super().__init__(name="behive_display")
 
         # mins are set to a very large number so they will be properly set the next time.
         self.min_outside_temp = 1000000

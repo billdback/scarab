@@ -144,7 +144,7 @@ class Event(PropertyWrapper):
         self.sim_time = sim_time
         self.created_by = created_by
 
-        PropertyWrapper.__init__(self, **kwargs)
+        super().__init__(**kwargs)
 
     def is_complete(self):
         """
@@ -183,7 +183,7 @@ class EntityCreatedEvent(Event):
         assert entity
 
         self.entity = entity
-        Event.__init__(self, name=ENTITY_CREATED_EVENT)
+        super().__init__(name=ENTITY_CREATED_EVENT)
 
 
 class EntityDestroyedEvent(Event):
@@ -199,7 +199,7 @@ class EntityDestroyedEvent(Event):
         assert entity
 
         self.entity = entity
-        Event.__init__(self, name=ENTITY_DESTROYED_EVENT)
+        super().__init__(name=ENTITY_DESTROYED_EVENT)
 
 
 class EntityChangedEvent(Event):
@@ -219,7 +219,7 @@ class EntityChangedEvent(Event):
 
         self.entity = entity
         self.changed_properties = changed_properties
-        Event.__init__(self, name=ENTITY_CHANGED_EVENT)
+        super().__init__(name=ENTITY_CHANGED_EVENT)
 
 
 class SimulationShutdownEvent(Event):
@@ -229,7 +229,7 @@ class SimulationShutdownEvent(Event):
         """
         Indicates the simulation is shutting down.
         """
-        Event.__init__(self, name=SIMULATION_SHUTDOWN)
+        super().__init__(name=SIMULATION_SHUTDOWN)
 
 
 class NewTimeEvent(Event):
@@ -249,7 +249,7 @@ class NewTimeEvent(Event):
 
         self.previous_time = previous_time
         self.new_time = new_time
-        Event.__init__(self, name=NEW_TIME_EVENT, sim_time=new_time)
+        super().__init__(name=NEW_TIME_EVENT, sim_time=new_time)
 
 # Commands. ----------------------------------------------------------------------------
 
@@ -278,4 +278,4 @@ class Message(Event):
 
         self.target_guid = target_guid
 
-        Event.__init__(self, name=name, sim_id=sim_id, created_by=created_by, sim_time=sim_time)
+        super().__init__(name=name, sim_id=sim_id, created_by=created_by, sim_time=sim_time)
