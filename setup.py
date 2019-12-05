@@ -25,5 +25,9 @@ setup(name='scarab',
       author_email='billback@mac.com',
       license='GPL3',
       packages=find_packages(),
-      zip_safe=False
+      zip_safe=False,
+      install_requires=[
+            "pyyaml",
+            "matplotlib"
+      ]
       )
