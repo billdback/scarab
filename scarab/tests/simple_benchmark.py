@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
     start_time = time.time()
 
-    simulation = Simulation(time_stepped=True)
+    simulation = Simulation(name="simple benchmark", time_stepped=True)
     print(f"Benchmarking scarab ...")
     simulation.add_entity(StopwatchEntity(show_frequency=number_cycles/10))
 

@@ -46,17 +46,17 @@ class TestBeeEntity(unittest.TestCase):
 
         beehive = Beehive(start_temp=10, buzzing_impact=.25, fanning_impact=.25)
         beehive.current_temp = 101
-        bee.handle_event(EntityChangedEvent(entity=beehive, changed_properties={"current_temp": 101}))
+        bee.handle_event(EntityChangedEvent(entity=beehive, changed_properties=["current_temp"]))
         self.assertTrue(bee.is_fanning)
         self.assertFalse(bee.is_buzzing)
 
         beehive.current_temp = 15
-        bee.handle_event(EntityChangedEvent(entity=beehive, changed_properties={"current_temp": 15}))
+        bee.handle_event(EntityChangedEvent(entity=beehive, changed_properties=["current_temp"]))
         self.assertFalse(bee.is_fanning)
         self.assertTrue(bee.is_buzzing)
 
         beehive.current_temp = 45
-        bee.handle_event(EntityChangedEvent(entity=beehive, changed_properties={"current_temp": 45}))
+        bee.handle_event(EntityChangedEvent(entity=beehive, changed_properties=["current_temp"]))
         self.assertFalse(bee.is_fanning)
         self.assertFalse(bee.is_buzzing)
 
@@ -226,4 +226,3 @@ class TestBeehiveDisplay(unittest.TestCase):
         display.handle_temp_changed(temp=outside_temp, changed_properties=["current_temp"])
 
         display.handle_time_update(previous_time=4, new_time=5)
-

@@ -157,23 +157,23 @@ class TestSimulation(unittest.TestCase):
 
     def test_print_license(self):
         """Prints the license.  Visual test only."""
-        sim = Simulation()
+        sim = Simulation(name="test-simulation")
         sim.print_license()
 
     def test_create_simulation(self):
         """Tests creating a simulation."""
-        sim = Simulation()
+        sim = Simulation(name="test-simulation")
         self.assertFalse(sim.time_stepped)
         self.assertIsNone(sim.next_time())
         self.assertEqual(sim.number_entities(), 0)
 
-        sim = Simulation(time_stepped=True)
+        sim = Simulation(name="test-simulation", time_stepped=True)
         self.assertTrue(sim.time_stepped)
         self.assertIsNone(sim.next_time())
 
     def test_add_entity(self):
         """Tests adding entities to a simulation."""
-        sim = Simulation()
+        sim = Simulation(name="test-simulation")
         self.assertEqual(sim.number_entities(), 0)
         self.assertEqual(sim.next_time(), None)
         self.assertEqual(sim.number_queued_events(), 0)
@@ -196,7 +196,7 @@ class TestSimulation(unittest.TestCase):
 
     def test_recognize_entity_changes(self):
         """Test recognizing when entities change and sending change messages."""
-        sim = Simulation()
+        sim = Simulation(name="test-simulation")
 
         te_change = TestEntityToChange()
         sim.add_entity(te_change)
@@ -220,7 +220,7 @@ class TestSimulation(unittest.TestCase):
         te1 = TestEntityOne()
         te2 = TestEntityTwo()
 
-        sim = Simulation()
+        sim = Simulation(name="test-simulation")
         sim.add_entity(te1)
         sim.add_entity(te2)
         sim.advance()
@@ -238,7 +238,7 @@ class TestSimulation(unittest.TestCase):
 
     def test_advance_simulation_in_steps(self):
         """Tests advancing the simulation a step at a time."""
-        sim = Simulation(time_stepped=True)
+        sim = Simulation(name="test-simulation", time_stepped=True)
         te = EntityTimeEventCatcher()
         sim.add_entity(te)
 
@@ -249,7 +249,7 @@ class TestSimulation(unittest.TestCase):
 
     def test_advance_simulation_in_jumps(self):
         """Tests advancing the simulation multiple steps."""
-        sim = Simulation(time_stepped=False)
+        sim = Simulation(name="test-simulation", time_stepped=False)
         te = EntityTimeEventCatcher()
         sim.add_entity(te)
 

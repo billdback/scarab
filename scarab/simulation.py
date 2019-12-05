@@ -437,9 +437,11 @@ class Simulation:
     events to the interested entities and other simulation objects.
     """
 
-    def __init__(self, time_stepped=False, cycle_length=0, event_priorities=None):
+    def __init__(self, name, time_stepped=False, cycle_length=0, event_priorities=None):
         """
         Creates a new simulation.
+        :param name: Name of the simulation.
+        :type name: str
         :param time_stepped: Indicates if the simulation is time stepped (i.e. one increment at a time) or not.  If
         False, then the next time sent out is the next time in the queue.
         :type time_stepped: bool
@@ -448,6 +450,7 @@ class Simulation:
         :param event_priorities: Priorities of simulation events.  These fall *after* the standard events.
         :type event_priorities: list of str
         """
+        assert name
         self.time_stepped = time_stepped
         self.cycle_length = cycle_length
         self._entities = {}        # entities in the simulation.

@@ -385,7 +385,7 @@ if __name__ == "__main__":
     print("Running the beehive simulation.")
     print(args)
 
-    simulation = Simulation(time_stepped=True, cycle_length=args.cycle_length)
+    simulation = Simulation(name="beehive", time_stepped=True, cycle_length=args.cycle_length)
 
     # pick some arbitrary values.
     BUZZING_IMPACT = 0.5
