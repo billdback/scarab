@@ -1,0 +1,62 @@
+# Beehive simulation description.
+
+---
+simulation: beehive_yaml
+
+entities:
+  Bee:
+    name: bee
+    attributes: [ buzz_temp, fan_temp, is_buzzing, is_fanning ]
+    handlers:
+      entities:
+        beehive: [changed]
+  Beehive:
+    name: beehive
+    attributes:
+      - current_temp
+      - outside_temp
+      - buzzing_impact
+      - fanning_impact
+      - number_bees
+      - number_bees_buzzing
+      - number_bees_fanning
+    handlers:
+      entities:
+        outside_temperature: [changed]
+        bee: [created, changed, destroyed]
+      events:
+        - time_update
+  OutsideTemperature:
+    name: outside_temperature
+    attributes: [min_temp, max_temp, current_temp]
+    handlers:
+      events:
+        - time_update
+  BeehiveDisplay:
+    name: beehive_display
+    attributes:
+      - min_outside_temp
+      - max_outside_temp
+      - min_hive_temp
+      - max_hive_temp
+      - min_number_bees
+      - max_number_bees
+      - min_number_bees_buzzing
+      - max_number_bees_buzzing
+      - min_number_bees_fanning
+      - max_number_bees_fanning
+    handlers:
+      entities:
+        beehive: [created, changed]
+        outside_temperature: [changed]
+      events:
+        - time_update
+
+events:
+  Event1:
+    name: event1
+    attributes: [attr1, attr2]
+  Event2:
+    name: event2
+    attributes: [attr3, attr4]
+...
