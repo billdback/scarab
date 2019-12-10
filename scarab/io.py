@@ -360,7 +360,7 @@ from scarab.events import *
 from scarab.simulation import Simulation, SIMULATION_LOGGING
 from scarab.loggers import global_loggers, StdOutLogger
 
-global_loggers.add_logger(StdOutLogger(), SIMULATION_LOGGING)
+StdOutLogger(topics=SIMULATION_LOGGING)
 
 """)
 

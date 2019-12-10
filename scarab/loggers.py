@@ -109,20 +109,43 @@ def log(topic, message):
     global_loggers.log(topic=topic, message=message)
 
 
+def cancel_log(topic):
+    """
+    Cancels logging on a topic.  Note that this turns off all logging on the topic and new logs have to be added
+    back.  TODO consider pausing and resuming.
+    :param topic: The topic to stop logging.
+    :type topic: str
+    :returns: None
+    """
+    assert topic
+    global_loggers.remove_logger_topic(topic=topic)
+
+
 class BaseLogger(ABC):
     """
     Base class for all loggers.
     """
 
-    def __init__(self, date_format="%d-%m-%Y %H:%M:%S"):
+    def __init__(self, topics, date_format="%d-%m-%Y %H:%M:%S"):
         """
         Creates a new logger and registers the logger for logging messages.
+        :param topics: One or more topics to log on this logger.
+        :type topics: str | list of str
         :param date_format: Format to use when writing log messages.
         :type date_format: str
         :return: None
         """
         assert date_format  # don'e allow to be None.  Doesn't check for valid format.
         self._date_format = date_format
+
+        assert topics
+        self.topics = list()
+        if isinstance(topics, str):
+            self.topics.append(topics)
+        elif isinstance(topics, list):
+            self.topics.extend(topics)
+        for topic in self.topics:
+            global_loggers.add_logger(logger=self, topic=topic)
 
         super().__init__()
 
@@ -161,12 +184,14 @@ class ListLogger(BaseLogger):
     unlimited amount of memory.
     """
 
-    def __init__(self):
+    def __init__(self, topics):
         """
         Creates a logger that logs to all messages to a list for later retrieval.
+        :param topics: One or more topics to log on this logger.
+        :type topics: str | list of str
         """
         self._logs = []
-        super().__init__()
+        super().__init__(topics=topics)
 
     def log(self, topic, message):
         """
@@ -208,11 +233,13 @@ class StdOutLogger(BaseLogger):
     Logs the messages to standard out.
     """
 
-    def __init__(self):
+    def __init__(self, topics):
         """
         Creates a logger that logs to all messages to standard out.
+        :param topics: One or more topics to log on this logger.
+        :type topics: str | list of str
         """
-        super().__init__()
+        super().__init__(topics=topics)
 
     def log(self, topic, message):
         """
@@ -231,11 +258,13 @@ class StdErrLogger(BaseLogger):
     Logs the messages to standard error.
     """
 
-    def __init__(self):
+    def __init__(self, topics):
         """
         Creates a logger that logs to all messages to standard error.
+        :param topics: One or more topics to log on this logger.
+        :type topics: str | list of str
         """
-        super().__init__()
+        super().__init__(topics=topics)
 
     def log(self, topic, message):
         """
@@ -255,9 +284,11 @@ class FileLogger(BaseLogger):
     TODO add rollover support for large file handling.
     """
 
-    def __init__(self, filename):
+    def __init__(self, topics, filename):
         """
         Creates a logger that logs to all messages to a list for later retrieval.
+        :param topics: One or more topics to log on this logger.
+        :type topics: str | list of str
         :param filename: The name (path) of the file to log to.
         :type filename: str
         :return: None
@@ -265,7 +296,7 @@ class FileLogger(BaseLogger):
         self._logs = []
         self._filename = filename
         self._file = None  # only open if there was something written.  Also supports multiple files and rollover.
-        super().__init__()
+        super().__init__(topics=topics)
 
     def log(self, topic, message):
         """
