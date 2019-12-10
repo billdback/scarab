@@ -47,9 +47,9 @@ def get_args():
     """
     parser = argparse.ArgumentParser(description="Generates Scarab simulation files from YAML.")
 
-    parser.add_argument("--yaml_file", type=str, help="path to the YAML file")
-    parser.add_argument("--sim_file", type=str, help="optional path to the output file")
-    parser.add_argument("--overwrite", type=str, action="store_true", help="overwrites previous sim files if set")
+    parser.add_argument("--yaml_file", help="path to the YAML file")
+    parser.add_argument("--sim_file", help="optional path to the output file")
+    parser.add_argument("--overwrite", action="store_true", help="overwrites previous sim files if set")
 
     return parser.parse_args()
 
