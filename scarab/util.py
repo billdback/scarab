@@ -45,3 +45,17 @@ def get_uuid():
     return uuid.uuid1(clock_seq=nanoseconds)
 
 
+def ind(length):
+    """
+    Returns spaces for indentation.
+    :param length: The number of spaces.
+    :type length: int
+    :returns: A string with the number of spaces to indent.
+    :rtype: str
+    """
+    spaces = ""
+    for space in range(0,length*4):
+        spaces += " "
+    return spaces
+
+

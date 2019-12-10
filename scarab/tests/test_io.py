@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import unittest
 
-from scarab.io import SimulationYAMLReader
+from scarab.io import SimulationYAMLReader, SimulationWriter
 
 
 TEST_SIMULATION_YAML = """
@@ -48,6 +48,7 @@ entities:
     handlers:
       events:
         - time_update
+        - simulation_shutdown
         - "event 1"
         - "event3" # unknown event.
       entities:
@@ -78,6 +79,7 @@ class TestSimulationYAMLTranslator(unittest.TestCase):
         self.assertFalse(entity.entity_handlers)
         self.assertFalse(entity.event_handlers)
         self.assertTrue(entity.time_update_handler)
+        self.assertFalse(entity.simulation_shutdown_handler)
 
         self.assertIn("Entity2", sim_repr.entities.keys())
         entity = sim_repr.entities["Entity2"]
@@ -89,6 +91,7 @@ class TestSimulationYAMLTranslator(unittest.TestCase):
         self.assertFalse(entity.entity_handlers)
         self.assertFalse(entity.event_handlers)
         self.assertFalse(entity.time_update_handler)
+        self.assertFalse(entity.simulation_shutdown_handler)
 
         self.assertIn("Entity3", sim_repr.entities.keys())
         entity = sim_repr.entities["Entity3"]
@@ -103,6 +106,7 @@ class TestSimulationYAMLTranslator(unittest.TestCase):
         self.assertIn("event 1", entity.event_handlers)
         self.assertIn("event3", entity.event_handlers)
         self.assertTrue(entity.time_update_handler)
+        self.assertTrue(entity.simulation_shutdown_handler)
 
         self.assertIn("Event1", sim_repr.events.keys())
         event = sim_repr.events["Event1"]
@@ -135,6 +139,23 @@ class TestSimulationYAMLTranslator(unittest.TestCase):
         issues = sim_repr.check_for_issues()
 
         self.assertEqual(4, len(issues))
+
+
+class TestSimulationWriter(unittest.TestCase):
+    """Tests writing simulation representations to Python."""
+
+    def test_writing_simulation(self):
+        """Tests writing the simulation to a file."""
+        sim_repr = SimulationYAMLReader().read_yaml_from_str(TEST_SIMULATION_YAML)
+
+        # get rid of the badly named class.
+        e1 = sim_repr.entities["Entity 1"]
+        del(sim_repr.entities["Entity 1"])
+        e1.class_name = "Entity1"
+        sim_repr.add_entity(e1)
+
+        sim_writer = SimulationWriter()
+        sim_writer.write_simulation_module(simulation_repr=sim_repr)
 
 
 if __name__ == '__main__':

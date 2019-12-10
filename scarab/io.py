@@ -21,6 +21,8 @@ from copy import copy
 import re
 import yaml
 
+from scarab.util import ind
+
 
 class EventRepr:
     """Represents an event."""
@@ -70,8 +72,11 @@ class EntityRepr:
             self.attributes = copy(attributes)
 
         self.entity_handlers = {}  # entity specific handlers.
-        self.time_update_handler = False  # True if handles time updates.
         self.event_handlers = []  # list of events that are handled.
+
+        # Special events.
+        self.time_update_handler = False  # True if handles time updates.
+        self.simulation_shutdown_handler = False # True if handles simulation shutdown events.
 
 
 class SimulationRepr:
@@ -295,9 +300,251 @@ class SimulationYAMLReader:
                             # special case events first.
                             if event_name == "time_update":
                                 entity_repr.time_update_handler = True
+                            elif event_name == "simulation_shutdown":
+                                entity_repr.simulation_shutdown_handler = True
                             else:
                                 entity_repr.event_handlers.append(event_name)
 
                 sr.add_entity(entity=entity_repr)
 
         return sr
+
+
+class SimulationWriter:
+    """Writes a simulation module based on a SimulationRepr"""
+
+    def __init__(self):
+        """
+        Creates a new simulation writer.
+        """
+        pass
+
+    @staticmethod
+    def write_simulation_module(simulation_repr, filename=None):
+        """
+        Writes the simulation representation to an actual simulation in a single module.
+        :param simulation_repr: The representation of the simulation to write.
+        :type simulation_repr: SimulationRepr
+        :param filename: The name of the file to write the simulation to.  If not provided, will use the
+        simulation name.
+        :type filename: str
+        """
+        assert simulation_repr
+        if not filename:
+            filename = simulation_repr.name + ".py"
+
+        with open(filename, "w") as outfile:
+            SimulationWriter.__write_header(outfile=outfile, simulation_repr=simulation_repr)
+            SimulationWriter.__write_events(outfile=outfile, simulation_repr=simulation_repr)
+            SimulationWriter.__write_entities(outfile=outfile, simulation_repr=simulation_repr)
+            SimulationWriter.__write_main(outfile=outfile, simulation_repr=simulation_repr)
+
+    @staticmethod
+    def __write_header(outfile, simulation_repr):
+        """
+        Writes the header of the file.
+        :param outfile: The file stream to write to.
+        :type outfile: file
+        :param simulation_repr: The simulation representation.
+        :type simulation_repr: SimulationRepr
+        """
+
+        outfile.write(f"""\
+\"\"\"
+Generated simulation {simulation_repr.name}
+\"\"\"
+
+# TODO adjust for the simulation needs.
+from scarab.entities import *
+from scarab.events import *
+from scarab.simulation import Simulation, SIMULATION_LOGGING
+from scarab.loggers import global_loggers, StdOutLogger
+
+global_loggers.add_logger(StdOutLogger(), SIMULATION_LOGGING)
+
+""")
+
+    @staticmethod
+    def __write_events(outfile, simulation_repr):
+        """
+        Writes the event classes to the file.
+        :param outfile: The file stream to write to.
+        :type outfile: file
+        :param simulation_repr: The simulation representation.
+        :type simulation_repr: SimulationRepr
+        """
+        for event_repr in simulation_repr.events.values():
+            attribute_list = [attribute + "=None" for attribute in event_repr.attributes]
+            attribute_list = ", ".join(attribute_list)
+
+            outfile.write("\n")
+            outfile.write(ind(0) + f'class {event_repr.class_name}(Event):\n')
+            outfile.write(ind(1) + f'"""Represents an {event_repr.event_name} event."""\n')
+            outfile.write("\n")
+            outfile.write(ind(1) + f'def __init__(self, {attribute_list}):\n')
+            outfile.write(ind(2) + '"""\n')
+            outfile.write(ind(2) + f'Creates a new {event_repr.event_name} event.\n')
+
+            for attribute in event_repr.attributes:
+                outfile.write(ind(2) + f':param {attribute}: {attribute}\n')
+                outfile.write(ind(2) + f':type {attribute}: str\n')
+
+            outfile.write(ind(2) + f':returns: None\n')
+            outfile.write(ind(2) + '"""\n')
+
+            for attribute in event_repr.attributes:
+                outfile.write(ind(2) + f'self.{attribute} = {attribute}\n')
+            outfile.write("\n")
+            outfile.write(ind(2) + f'super().__init__(name="{event_repr.event_name}")\n')
+            outfile.write("\n")
+
+    @staticmethod
+    def __write_entities(outfile, simulation_repr):
+        """
+        Writes the entity classes to the file.
+        :param outfile: The file stream to write to.
+        :type outfile: file
+        :param simulation_repr: The simulation representation.
+        :type simulation_repr: SimulationRepr
+        """
+        for entity_repr in simulation_repr.entities.values():
+            attribute_list = [attribute + "=None" for attribute in entity_repr.attributes]
+            attribute_list = ", ".join(attribute_list)
+
+            # class definition
+            outfile.write('\n')
+            outfile.write(ind(0) + f'class {entity_repr.class_name}(Entity):\n')
+            outfile.write(ind(1) + f'"""Represents an {entity_repr.entity_name} entity."""\n')
+            outfile.write('\n')
+
+            # __init__ method
+            outfile.write(ind(1) + f'def __init__(self, {attribute_list}):\n')
+            outfile.write(ind(2) + '"""\n')
+            outfile.write(ind(2) + f'Creates a new {entity_repr.entity_name} entity.\n')
+
+            for attribute in entity_repr.attributes:
+                outfile.write(ind(2) + f':param {attribute}: {attribute}\n')
+                outfile.write(ind(2) + f':type {attribute}: str\n')
+
+            outfile.write(ind(2) + '"""\n')
+
+            for attribute in entity_repr.attributes:
+                outfile.write(ind(2) + f'self.{attribute} = {attribute}\n')
+            outfile.write('\n')
+            outfile.write(ind(2) + f'super().__init__(name="{entity_repr.entity_name}")\n')
+            outfile.write('\n')
+
+            # Add the event handlers.
+            for event_name in entity_repr.event_handlers:
+                outfile.write(ind(1) + f'@event_handler(event_name="{event_name}")\n')
+                outfile.write(ind(1) + f'def handle_{SimulationWriter.__clean_name(event_name)}_event(self, event):\n')
+                outfile.write(ind(2) + f'"""\n')
+                outfile.write(ind(2) + f'Handles a {event_name} event.\n')
+                outfile.write(ind(2) + f':param event: {event_name} event.\n')
+                outfile.write(ind(2) + f':type event: Event\n')
+                outfile.write(ind(2) + f':returns: None\n')
+                outfile.write(ind(2) + f'"""\n')
+                outfile.write(ind(2) + f'pass\n')
+                outfile.write('\n')
+
+            if entity_repr.time_update_handler:
+                outfile.write(ind(1) + f'@time_update_event_handler\n')
+                outfile.write(ind(1) + f'def handle_time_event(self, previous_time, new_time):\n')
+                outfile.write(ind(2) + f'"""\n')
+                outfile.write(ind(2) + f'Handles a time change.\n')
+                outfile.write(ind(2) + f':param previous_time: The previous simulation time.\n')
+                outfile.write(ind(2) + f':type previous_time: int\n')
+                outfile.write(ind(2) + f':param new_time: The new simulation time.\n')
+                outfile.write(ind(2) + f':type new_time: int\n')
+                outfile.write(ind(2) + f':returns: None\n')
+                outfile.write(ind(2) + f'"""\n')
+                outfile.write(ind(2) + f'pass\n')
+                outfile.write('\n')
+
+            if entity_repr.simulation_shutdown_handler:
+                outfile.write(ind(1) + f'@simulation_shutdown_handler\n')
+                outfile.write(ind(1) + f'def handle_simulation_shutdown(self, shutdown_event):\n')
+                outfile.write(ind(2) + f'"""\n')
+                outfile.write(ind(2) + f'Handles any activities related to shutting down of the simulation.\n')
+                outfile.write(ind(2) + f':param shutdown_event: The shutdown event.\n')
+                outfile.write(ind(2) + f':type shutdown_event: Event\n')
+                outfile.write(ind(2) + f':returns: None\n')
+                outfile.write(ind(2) + f'"""\n')
+                outfile.write(ind(2) + f'pass\n')
+                outfile.write('\n')
+
+            for entity_name in entity_repr.entity_handlers.keys():
+                for state in entity_repr.entity_handlers[entity_name]:
+                    if state == "created":
+                        outfile.write(ind(1) + f'@entity_created_event_handler(entity_name="{entity_name}")\n')
+                        outfile.write(ind(1) + f'def handle_{SimulationWriter.__clean_name(entity_name)}'
+                                               f'_created(self, entity):\n')
+                        outfile.write(ind(2) + f'"""\n')
+                        outfile.write(ind(2) + f'Handles a {entity_name} created event.\n')
+                        outfile.write(ind(2) + f':param entity: {entity_name} entity.\n')
+                        outfile.write(ind(2) + f':type entity: Entity\n')
+                        outfile.write(ind(2) + f':returns: None\n')
+                        outfile.write(ind(2) + f'"""\n')
+                        outfile.write(ind(2) + f'pass\n')
+                        outfile.write('\n')
+                    elif state == "destroyed":
+                        outfile.write(ind(1) + f'@entity_destroyed_event_handler(entity_name="{entity_name}")\n')
+                        outfile.write(ind(1) + f'def handle_{SimulationWriter.__clean_name(entity_name)}'
+                                               f'_destroyed(self, entity):\n')
+                        outfile.write(ind(2) + f'"""\n')
+                        outfile.write(ind(2) + f'Handles a {entity_name} destroyed event.\n')
+                        outfile.write(ind(2) + f':param entity: {entity_name} entity.\n')
+                        outfile.write(ind(2) + f':type entity: Entity\n')
+                        outfile.write(ind(2) + f':returns: None\n')
+                        outfile.write(ind(2) + f'"""\n')
+                        outfile.write(ind(2) + f'pass\n')
+                        outfile.write('\n')
+                    elif state == "changed":
+                        outfile.write(ind(1) + f'@entity_changed_event_handler(entity_name="{entity_name}")\n')
+                        outfile.write(ind(1) + f'def handle_{SimulationWriter.__clean_name(entity_name)}'
+                                               f'_changed(self, entity, changed_properties):\n')
+                        outfile.write(ind(2) + f'"""\n')
+                        outfile.write(ind(2) + f'Handles a {entity_name} changed event.\n')
+                        outfile.write(ind(2) + f':param entity: {entity_name} entity.\n')
+                        outfile.write(ind(2) + f':type entity: Entity\n')
+                        outfile.write(ind(2) + f':param changed_properties: list of changed properties.\n')
+                        outfile.write(ind(2) + f':type changed_properties: list of str\n')
+                        outfile.write(ind(2) + f':returns: None\n')
+                        outfile.write(ind(2) + f'"""\n')
+                        outfile.write(ind(2) + f'pass\n')
+                        outfile.write('\n')
+
+    @staticmethod
+    def __clean_name(name):
+        """
+        Cleans a name so it can be used as a variable.
+        :param name: The name to clean.
+        :type name: str
+        :returns: The clean name that can be used.
+        :rtype: str
+        """
+        new_name = \
+            name.replace(" ", "")\
+            .replace("-","_")
+        return new_name
+
+    @staticmethod
+    def __write_main(outfile, simulation_repr):
+        """
+        Writes the stub for the main section.
+        :param outfile: The file stream to write to.
+        :type outfile: file
+        :param simulation_repr: The simulation representation.
+        :type simulation_repr: SimulationRepr
+        """
+        outfile.write(f'\n')
+        outfile.write(ind(0) + f'def main():\n')
+        outfile.write(ind(1) + f'"""\n')
+        outfile.write(ind(1) + f'Main driver for simulation {simulation_repr.name}\n')
+        outfile.write(ind(1) + f'"""\n')
+        outfile.write(ind(1) + f'sim = Simulation(name="{simulation_repr.name}")\n')
+        outfile.write(f'\n')
+
+        outfile.write(f'\n')
+        outfile.write(ind(0) + f'if __name__ == "__main__":\n')
+        outfile.write(ind(1) + f'main()\n')

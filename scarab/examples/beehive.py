@@ -23,8 +23,8 @@ import argparse
 import random
 
 from scarab.entities import *
-from scarab.simulation import Simulation, SIMULATION_LOGGING, EVENT_LOGGING, ENTITY_LOGGING
 from scarab.loggers import global_loggers, StdOutLogger
+from scarab.simulation import Simulation, SIMULATION_LOGGING, EVENT_LOGGING, ENTITY_LOGGING
 
 global_loggers.add_logger(StdOutLogger(), SIMULATION_LOGGING)
 # global_loggers.add_logger(StdOutLogger(), EVENT_LOGGING)

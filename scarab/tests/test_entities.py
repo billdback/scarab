@@ -221,7 +221,7 @@ class TestEntities(unittest.TestCase):
         # This would be called from the framework.
         te.handle_event(EntityCreatedEvent(entity=Entity(name="entity1")))
         self.assertTrue(te.entity1_created)
-        te.handle_event(EntityChangedEvent(entity=Entity(name="entity1"), changed_properties={"property1": 1}))
+        te.handle_event(EntityChangedEvent(entity=Entity(name="entity1"), changed_properties=["property1"]))
         self.assertTrue(te.entity1_changed)
         te.handle_event(EntityDestroyedEvent(entity=Entity(name="entity1")))
         self.assertTrue(te.entity1_destroyed)
@@ -247,7 +247,7 @@ class TestEntities(unittest.TestCase):
 
         te.handle_event(NewTimeEvent(previous_time=0, new_time=1))
         te.handle_event(EntityCreatedEvent(entity=Entity(name="entity1")))
-        te.handle_event(EntityChangedEvent(entity=Entity(name="entity1"), changed_properties={"property1": 1}))
+        te.handle_event(EntityChangedEvent(entity=Entity(name="entity1"), changed_properties=["property1"]))
         te.handle_event(EntityDestroyedEvent(entity=Entity(name="entity1")))
 
 
