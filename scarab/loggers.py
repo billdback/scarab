@@ -20,6 +20,8 @@ This module contains base classes for Events and Commands as well as common Even
 from abc import ABC, abstractmethod
 import datetime
 
+from scarab.util import eprint
+
 now = datetime.datetime.now()  # shortcut for getting the current time.
 
 
@@ -208,9 +210,8 @@ class StdOutLogger(BaseLogger):
 
     def __init__(self):
         """
-        Creates a logger that logs to all messages to a list for later retrieval.
+        Creates a logger that logs to all messages to standard out.
         """
-        self._logs = []
         super().__init__()
 
     def log(self, topic, message):
@@ -223,6 +224,29 @@ class StdOutLogger(BaseLogger):
         :return:  None
         """
         print(BaseLogger.format_message(topic=topic, message=message))
+
+
+class StdErrLogger(BaseLogger):
+    """
+    Logs the messages to standard error.
+    """
+
+    def __init__(self):
+        """
+        Creates a logger that logs to all messages to standard error.
+        """
+        super().__init__()
+
+    def log(self, topic, message):
+        """
+        Logs a message for a given topic.
+        :param topic: The topic to log to.
+        :type topic: str
+        :param message:  The message to log.
+        :type message: str
+        :return:  None
+        """
+        eprint(BaseLogger.format_message(topic=topic, message=message))
 
 
 class FileLogger(BaseLogger):
