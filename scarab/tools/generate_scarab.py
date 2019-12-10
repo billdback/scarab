@@ -68,7 +68,7 @@ def valid(args):
         eprint(f"YAML file {args.yaml_file} doesn't exist.")
         is_valid = False
     if args.sim_file and not args.overwrite and os.path.exists(args.sim_file):
-        eprint(f"Simulation file {args.yaml_file} exist and overwrite is not specified.")
+        eprint(f"Simulation file {args.sim_file} exist and overwrite is not specified.")
         is_valid = False
 
     return is_valid
