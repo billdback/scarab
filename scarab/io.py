@@ -76,7 +76,7 @@ class EntityRepr:
 
         # Special events.
         self.time_update_handler = False  # True if handles time updates.
-        self.simulation_shutdown_handler = False # True if handles simulation shutdown events.
+        self.simulation_shutdown_handler = False  # True if handles simulation shutdown events.
 
 
 class SimulationRepr:
@@ -525,7 +525,7 @@ StdOutLogger(topics=SIMULATION_LOGGING)
         """
         new_name = \
             name.replace(" ", "")\
-            .replace("-","_")
+            .replace("-", "_")
         return new_name
 
     @staticmethod
