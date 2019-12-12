@@ -110,7 +110,7 @@ Main features:
 * Entities with handlers and state management
 * Event interest and routing
 
-### Version 2.0 (Planned)
+### Version 2.0 (In Progress)
 
 Theme: Performance and ease of development
 
@@ -130,6 +130,6 @@ verification and validation and testing.
 
 ### Version 4.0 (Future)
 
-Theme: Distributed simulations
+Theme: Parallel and distributed simulations
 
-Version 4.0 will be focused on distributed simulations.
+Version 4.0 will be focused on parallel and distributed simulations to enhance scalability.

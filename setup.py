@@ -20,7 +20,7 @@ from setuptools import setup, find_packages
 setup(name='scarab',
       version='1.0',
       description='This package contains the framework for an entity-based event simulation framework.',
-      python_requires='>3.6',
+      python_requires='>3.7',
       author='William D Back',
       author_email='billback@mac.com',
       license='GPL3',
