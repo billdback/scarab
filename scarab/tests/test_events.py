@@ -118,10 +118,10 @@ class TestEvents(unittest.TestCase):
         self.assertEqual(event.name, ENTITY_DESTROYED_EVENT)
         self.assertEqual(event.entity.name, "test.entity")
 
-        event = EntityChangedEvent(entity=Entity(name="test.entity"), changed_properties={"property1": 1})
+        event = EntityChangedEvent(entity=Entity(name="test.entity"), changed_properties=["property1"])
         self.assertEqual(event.name, ENTITY_CHANGED_EVENT)
         self.assertEqual(event.entity.name, "test.entity")
-        self.assertEqual(event.changed_properties["property1"], 1)
+        self.assertIn("property1", event.changed_properties)
 
         event = NewTimeEvent(previous_time=11, new_time=12)
         self.assertEqual(event.name, NEW_TIME_EVENT)
