@@ -717,6 +717,13 @@ class Simulation(Thread):
         while self._previous_time < (start_time + steps):
             time.sleep(0.5)
 
+    def pause(self):
+        """
+        Pauses the simulation if it's running.
+        """
+        assert self.state != SimulationState.not_started  # make sure the simulation has actually been started.
+        self.state = SimulationState.paused
+
     def __send_change_events(self):
         """
         Go through all the entities and send out change events.

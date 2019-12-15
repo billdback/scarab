@@ -265,21 +265,25 @@ class TestSimulation(unittest.TestCase):
             self.assertEqual(7, len(te.times_updated))
             self.assertEqual([1, 5, 10, 15, 20, 25, 26], te.times_updated)
 
-    def start_simulation(self):
+    def test_start_simulation(self):
         """Tests starting the simulation."""
-        pass
+        with Simulation(name="test simulation") as sim:
+            time.sleep(1)  # wait for start.
+            self.assertEqual(SimulationState.paused, sim.state)
+            sim.advance()
+            self.assertEqual(SimulationState.running, sim.state)
 
-    def test_stop_simulation(self):
+    def test_pause_and_resume_simulation(self):
         """Tests starting the simulation."""
-        pass
-
-    def test_pause_simulation(self):
-        """Tests starting the simulation."""
-        pass
-
-    def test_resume_simulation(self):
-        """Tests starting the simulation."""
-        pass
+        with Simulation(name="test simulation") as sim:
+            time.sleep(1)  # wait for start.
+            self.assertEqual(SimulationState.paused, sim.state)
+            sim.advance()
+            self.assertEqual(SimulationState.running, sim.state)
+            sim.pause()
+            self.assertEqual(SimulationState.paused, sim.state)
+            sim.advance()
+            self.assertEqual(SimulationState.running, sim.state)
 
 
 if __name__ == '__main__':
