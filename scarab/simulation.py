@@ -20,9 +20,11 @@ TODO There may be opportunities for performance improvement in many of these cla
 """
 
 from copy import deepcopy
+from enum import Enum
 import re
 import sys
 import time
+from threading import Thread
 
 from scarab.entities import Entity
 from scarab.events import *
@@ -431,13 +433,24 @@ class RemoteEntity(PropertyWrapper):
         super().__init__()
 
 
-class Simulation:
+class SimulationState(Enum):
+    """Defines the various simulations states."""
+
+    not_started = 0
+    initialized = 1
+    running = 2
+    paused = 3
+    shutting_down = 4
+
+
+class Simulation(Thread):
     """
     Class that represents a simulation with entities.  It manages the time and lifecycle of entities, and routes
     events to the interested entities and other simulation objects.
     """
+    ADVANCE_UNLIMITED = -10  # indicates that there is no limit to advancing, so just keep going.
 
-    def __init__(self, name, time_stepped=False, cycle_length=0, event_priorities=None):
+    def __init__(self, name, time_stepped=False, max_time=-1, minimum_step_time=0, event_priorities=None):
         """
         Creates a new simulation.
         :param name: Name of the simulation.
@@ -445,25 +458,34 @@ class Simulation:
         :param time_stepped: Indicates if the simulation is time stepped (i.e. one increment at a time) or not.  If
         False, then the next time sent out is the next time in the queue.
         :type time_stepped: bool
-        :param cycle_length: Length of a cycle in seconds.  Minimum length of a cycle.
-        :type cycle_length: int
+        :param start_paused: If true, the simulation will start in a paused state.  If not, it will immediately
+        start running.
+        :type start_paused: bool
+        :param max_time: Maximum time in the simulation.  Once this time is reached, the simulation shuts down.
+        :type max_time: int
+        :param minimum_step_time: Mininum length of a single step in seconds.
+        :type minimum_step_time: int
         :param event_priorities: Priorities of simulation events.  These fall *after* the standard events.
         :type event_priorities: list of str
         """
         assert name
         self.time_stepped = time_stepped
-        self.cycle_length = cycle_length
+        self.max_time = max_time
+        self.minimum_step_time = minimum_step_time
         self._entities = {}        # entities in the simulation.
         self._previous_state = {}  # records the previous state of entities for comparison if they changed.
         all_event_priorities = [SIMULATION_EVENTS, ENTITY_EVENTS, TIME_EVENTS]
         if event_priorities:
             all_event_priorities.extend(event_priorities)
 
+        self.__steps_to_advance = Simulation.ADVANCE_UNLIMITED
+
         self._event_queue = PriorityEventQueue(priorities=all_event_priorities)
         self._event_mediator = EventMediator()
 
         self._previous_time = -1
 
+        self.state = SimulationState.not_started
         self.license = [
             "--------------------------------------------------------------------------",
             "",
@@ -484,8 +506,74 @@ class Simulation:
             "",
             "--------------------------------------------------------------------------"
         ]
-
         self.print_license()
+
+        super().__init__(name=name)
+
+    def __del__(self):
+        """Make sure the simulation shuts down."""
+        if self.state != SimulationState.shutting_down:
+            self.shutdown()
+
+    def __enter__(self):
+        """
+        Provides support for with statement.
+        :returns: The simulation object.
+        :rtype: Simulation
+        """
+        self.start()
+        while self.state == SimulationState.not_started:
+            # wait for thread to start
+            time.sleep(0.05)
+
+        return self
+
+    def __exit__(self, exception_class, exception_value, exception_traceback):
+        """
+        Cleans up after the end of the with block.
+        :param exception_class: The exception class or None
+        :param exception_value: The value from the exception.
+        :param exception_traceback: The exception traceback.
+        :returns: None
+        """
+        self.shutdown()
+
+    def run(self) -> None:
+        """
+        Causes the simulation thread to run.  This could be called from Simulation.start().
+        :returns: None
+        """
+        # Make sure this doesn't get called if the simulation is shutting down.
+        if self.state == SimulationState.shutting_down:
+            return
+
+        # TODO send a simulation setup event.
+        self.state = SimulationState.paused
+
+        # Keep running until shutting down.  Note that this is not a deamon, so shutdowns can be abrupt.
+        while self.state != SimulationState.shutting_down:
+            # If the state is not running, then sleep for a second and see if that changes.
+            if self.state != SimulationState.running:
+                time.sleep(1)
+            else:  # simulation is running, see if it should step.
+                if self.max_time > 0 and (self._previous_time >= self.max_time):
+                    self.shutdown()
+
+                if self.__steps_to_advance == Simulation.ADVANCE_UNLIMITED:
+                    self.step()
+                elif self.__steps_to_advance > 0:
+                    self.step()
+                    self.__steps_to_advance -= 1
+                else:  # no time to advance, so pause until time to advance.
+                    time.sleep(1)
+
+    def shutdown(self):
+        """
+        Shuts down the simulation.
+        """
+        log(SIMULATION_LOGGING, f"Simulation {self.name} shutting down.")
+        self.__send_event(SimulationShutdownEvent())
+        self.state = SimulationState.shutting_down
 
     def print_license(self):
         """
@@ -563,47 +651,69 @@ class Simulation:
 
         self.__send_event(EntityDestroyedEvent(entity=RemoteEntity(entity)))
 
-    def advance(self, cycles=1):
+    def step(self) -> None:
         """
-        Manually advances time by the number of cycles specified (default of one).
-        :param cycles: The number of cycles to advance by.
-        :type cycles: int
+        Causes the simulation to advance a single step.
+        """
+        start_cycle_clock_time = time.time()
+
+        current_time = self._event_queue.next_time()
+
+        # If there are no events in the queue, cycle one in any case.
+        previous_time = self._previous_time
+        if not current_time:  # this causes the same behavior for time stepped and jumped simulations.
+            current_time = self._previous_time + 1
+        self._previous_time = current_time
+
+        # send a time update event for the next time.
+        self.__send_event(NewTimeEvent(previous_time=previous_time, new_time=current_time))
+
+        # send all of the events for the current time.
+        while self._event_queue.next_time() == current_time:
+            # send all events from the queue to interested simulation entities.
+            self.__send_event(self._event_queue.next())
+
+        self.__send_change_events()
+
+        elapsed_time = time.time() - start_cycle_clock_time
+        while elapsed_time < self.minimum_step_time:
+            time.sleep(1)
+            elapsed_time = time.time() - start_cycle_clock_time
+
+    def advance(self, steps=ADVANCE_UNLIMITED):
+        """
+        Manually advances time by the number of steps specified.
+        :param steps: The number of steps to advance by.  If not specified runs unlimited.
+        :type steps: int
         :return: Nothing
         """
-        assert cycles and cycles > 0, f"Invalid cycles amount of {cycles}"  # sanity check to avoid cycling to the past.
+        assert steps > 0 or steps == Simulation.ADVANCE_UNLIMITED
 
-        log(SIMULATION_LOGGING, f"Advancing the simulation {cycles} times.")
+        if steps > 0:
+            log(SIMULATION_LOGGING, f"Advancing the simulation {steps} times.")
+        else:
+            log(SIMULATION_LOGGING, f"Advancing the simulation until shutdown.")
 
-        nbr_cycles = 0
+        self.__steps_to_advance = steps
+        self.state = SimulationState.running
 
-        while nbr_cycles < cycles:
+    def advance_and_wait(self, steps=1):
+        """
+        Manually advances time by the number of steps specified (default of one), waiting while the sim advances.
+        Note that this is mostly to make the simulation synchronous for testing.
+        TODO - have an alternate approach with callbacks to make this thread safe and more flexible.
+        :param steps: The number of steps to advance by.  Must be positive.  Default is 1.
+        :type steps: int
+        :return: Nothing
+        """
+        assert steps > 0
 
-            start_cycle_clock_time = time.time()
+        start_time = self._previous_time
+        self.advance(steps=steps)
 
-            current_time = self._event_queue.next_time()
-
-            # If there are no events in the queue, cycle one in any case.
-            previous_time = self._previous_time
-            if not current_time:  # this causes the same behavior for time stepped and jumped simulations.
-                current_time = self._previous_time + 1
-            self._previous_time = current_time
-
-            # send a time update event for the next time.
-            self.__send_event(NewTimeEvent(previous_time=previous_time, new_time=current_time))
-
-            # send all of the events for the current time.
-            while self._event_queue.next_time() == current_time:
-                # send all events from the queue to interested simulation entities.
-                self.__send_event(self._event_queue.next())
-
-            self.__send_change_events()
-
-            nbr_cycles += 1
-
-            elapsed_time = time.time() - start_cycle_clock_time
-            while elapsed_time < self.cycle_length:
-                time.sleep(1)
-                elapsed_time = time.time() - start_cycle_clock_time
+        # now just wait for the time to catch up.
+        while self._previous_time < (start_time + steps):
+            time.sleep(0.5)
 
     def __send_change_events(self):
         """

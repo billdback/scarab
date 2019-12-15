@@ -27,8 +27,8 @@ from scarab.loggers import StdOutLogger
 from scarab.simulation import Simulation, SIMULATION_LOGGING, EVENT_LOGGING, ENTITY_LOGGING
 
 StdOutLogger(topics=SIMULATION_LOGGING)
-# StdOutLogger(topics=EVENT_LOGGING)
-# StdOutLogger(topics=ENTITY_LOGGING)
+StdOutLogger(topics=EVENT_LOGGING)
+StdOutLogger(topics=ENTITY_LOGGING)
 
 
 class Bee(Entity):
@@ -368,13 +368,13 @@ def get_args():
                                                  "graceful changes (temp regulation) vs. set values that cause extreme "
                                                  "changes.")
 
-    parser.add_argument("--cycle_length", type=int, default=0, help="length of cycle in seconds")
+    parser.add_argument("--step_length", type=int, default=0, help="length of simulation step in seconds")
     parser.add_argument("--number_bees", type=int, default=10, help="number of bees in the hive")
     parser.add_argument("--bee_variance", default="vary",
                         choices=["vary", "same"],
                         help="vary: bees have different temps for buzz and fan.\n"
                              "same: bees have same temp for buzz and fan.")
-    parser.add_argument("--max_cycles", type=int, default=10080, help="Number of cycles as minutes.")
+    parser.add_argument("--max_steps", type=int, default=10080, help="Number of steps as minutes.")
 
     return parser.parse_args()
 
@@ -385,29 +385,29 @@ if __name__ == "__main__":
     print("Running the beehive simulation.")
     print(args)
 
-    simulation = Simulation(name="beehive", time_stepped=True, cycle_length=args.cycle_length)
+    with Simulation(name="beehive", time_stepped=True, minimum_step_time=args.step_length) as simulation:
 
-    # pick some arbitrary values.
-    BUZZING_IMPACT = 0.5
-    FANNING_IMPACT = 0.5
-    MIN_OUTSIDE_TEMP = 50.0
-    MAX_OUTSIDE_TEMP = 90.0
-    TARGET_BEE_BUZZING = 60.0  # warm up
-    TARGET_BEE_FANNING = 65.0  # cool down
+        # pick some arbitrary values.
+        BUZZING_IMPACT = 0.5
+        FANNING_IMPACT = 0.5
+        MIN_OUTSIDE_TEMP = 50.0
+        MAX_OUTSIDE_TEMP = 90.0
+        TARGET_BEE_BUZZING = 60.0  # warm up
+        TARGET_BEE_FANNING = 65.0  # cool down
 
-    simulation.add_entity(Beehive(start_temp=TARGET_BEE_BUZZING,
-                                  buzzing_impact=BUZZING_IMPACT, fanning_impact=FANNING_IMPACT))
-    simulation.add_entity(OutsideTemperature(min_temp=MIN_OUTSIDE_TEMP, max_temp=MAX_OUTSIDE_TEMP))
-    simulation.add_entity(BeehiveDisplay())
+        simulation.add_entity(Beehive(start_temp=TARGET_BEE_BUZZING,
+                                      buzzing_impact=BUZZING_IMPACT, fanning_impact=FANNING_IMPACT))
+        simulation.add_entity(OutsideTemperature(min_temp=MIN_OUTSIDE_TEMP, max_temp=MAX_OUTSIDE_TEMP))
+        simulation.add_entity(BeehiveDisplay())
 
-    # create and add the bees
-    for bee_number in range(0, args.number_bees):
-        # if the variance is "same", then all bees get the same fan and flap temps.  If not, vary randomly.
-        if args.bee_variance == "vary":
-            bee_fan = random.uniform(TARGET_BEE_FANNING * .9, TARGET_BEE_FANNING * 1.1)
-            bee_buzz = random.uniform(TARGET_BEE_BUZZING * .9, TARGET_BEE_BUZZING * 1.1)
-            simulation.add_entity(Bee(fan_temp=bee_fan, buzz_temp=bee_buzz))
-        else:
-            simulation.add_entity(Bee(fan_temp=TARGET_BEE_FANNING, buzz_temp=TARGET_BEE_BUZZING))
+        # create and add the bees
+        for bee_number in range(0, args.number_bees):
+            # if the variance is "same", then all bees get the same fan and flap temps.  If not, vary randomly.
+            if args.bee_variance == "vary":
+                bee_fan = random.uniform(TARGET_BEE_FANNING * .9, TARGET_BEE_FANNING * 1.1)
+                bee_buzz = random.uniform(TARGET_BEE_BUZZING * .9, TARGET_BEE_BUZZING * 1.1)
+                simulation.add_entity(Bee(fan_temp=bee_fan, buzz_temp=bee_buzz))
+            else:
+                simulation.add_entity(Bee(fan_temp=TARGET_BEE_FANNING, buzz_temp=TARGET_BEE_BUZZING))
 
-    simulation.advance(args.max_cycles)
+        simulation.advance_and_wait(steps=args.max_steps)

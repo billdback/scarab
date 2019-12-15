@@ -173,96 +173,97 @@ class TestSimulation(unittest.TestCase):
 
     def test_add_entity(self):
         """Tests adding entities to a simulation."""
-        sim = Simulation(name="test-simulation")
-        self.assertEqual(sim.number_entities(), 0)
-        self.assertEqual(sim.next_time(), None)
-        self.assertEqual(sim.number_queued_events(), 0)
 
-        entity1 = TestEntityOne()
-        sim.add_entity(entity1)
-        entity2 = TestEntityTwo()
-        sim.add_entity(entity2)
+        with Simulation(name="test-simulation") as sim:
+            self.assertEqual(sim.number_entities(), 0)
+            self.assertEqual(sim.next_time(), None)
+            self.assertEqual(sim.number_queued_events(), 0)
 
-        self.assertEqual(sim.number_entities(), 2)
-        self.assertEqual(sim.next_time(), 1)
-        self.assertEqual(sim.number_queued_events(), 2)
+            entity1 = TestEntityOne()
+            sim.add_entity(entity1)
+            entity2 = TestEntityTwo()
+            sim.add_entity(entity2)
 
-        # increment the time one and make sure the entities were notified of time advance.
-        sim.advance(1)
+            self.assertEqual(sim.number_entities(), 2)
+            self.assertEqual(sim.next_time(), 1)
+            self.assertEqual(sim.number_queued_events(), 2)
 
-        # Make sure the entities received notification about the others.
-        self.assertTrue(entity1.entity2_created)
-        self.assertTrue(entity2.entity1_created)
+            # increment the time one and make sure the entities were notified of time advance.
+            sim.advance_and_wait(steps=1)
+
+            # Make sure the entities received notification about the others.
+            self.assertTrue(entity1.entity2_created)
+            self.assertTrue(entity2.entity1_created)
 
     def test_recognize_entity_changes(self):
         """Test recognizing when entities change and sending change messages."""
-        sim = Simulation(name="test-simulation")
+        with Simulation(name="test-simulation") as sim:
 
-        te_change = TestEntityToChange()
-        sim.add_entity(te_change)
-        te_watcher = EntityChangeWatcher()
-        sim.add_entity(te_watcher)
+            te_change = TestEntityToChange()
+            sim.add_entity(te_change)
+            te_watcher = EntityChangeWatcher()
+            sim.add_entity(te_watcher)
 
-        sim.advance(1)
-        self.assertTrue(te_watcher.other_entity)
+            sim.advance_and_wait()
+            self.assertTrue(te_watcher.other_entity)
 
-        te_change.property1 = 2
-        te_change.property2 = "hi"
-        te_change._property3 = "don't see me"
-        te_change.__dict__["property4"] = "new_property"
-        sim.advance(1)
+            te_change.property1 = 2
+            te_change.property2 = "hi"
+            te_change._property3 = "don't see me"
+            te_change.__dict__["property4"] = "new_property"
+            sim.advance_and_wait()
 
-        self.assertEqual(te_watcher.other_entity.guid, te_watcher.change_entity.guid)
-        self.assertEqual(te_watcher.other_entity.name, te_watcher.change_entity.name)
+            self.assertEqual(te_watcher.other_entity.guid, te_watcher.change_entity.guid)
+            self.assertEqual(te_watcher.other_entity.name, te_watcher.change_entity.name)
 
     def test_destroy_entity(self):
         """Tests destroying an entity."""
         te1 = TestEntityOne()
         te2 = TestEntityTwo()
 
-        sim = Simulation(name="test-simulation")
-        sim.add_entity(te1)
-        sim.add_entity(te2)
-        sim.advance()
+        with Simulation(name="test-simulation") as sim:
+            sim.add_entity(te1)
+            sim.add_entity(te2)
+            sim.advance_and_wait()
+            self.assertTrue(te1.entity2_created)
+            self.assertTrue(te2.entity1_created)
 
-        self.assertTrue(te1.entity2_created)
-        self.assertTrue(te2.entity1_created)
+            sim.remove_entity(entity=te2)
+            sim.advance_and_wait()
+            self.assertTrue(te1.entity2_destroyed)
 
-        sim.remove_entity(entity=te2)
-        sim.advance()
-        self.assertTrue(te1.entity2_destroyed)
-
-        sim.queue_event(event=Event(name="test.event.two"))
-        sim.advance()
-        self.assertFalse(te2.event_two_handled)
+            sim.queue_event(event=Event(name="test.event.two"))
+            sim.advance_and_wait()
+            self.assertFalse(te2.event_two_handled)
 
     def test_advance_simulation_in_steps(self):
         """Tests advancing the simulation a step at a time."""
-        sim = Simulation(name="test-simulation", time_stepped=True)
-        te = EntityTimeEventCatcher()
-        sim.add_entity(te)
 
-        sim.advance(cycles=5)
-        self.assertEqual(5, te.current_time)
-        self.assertEqual(5, len(te.times_updated))
-        self.assertEqual([1, 2, 3, 4, 5], te.times_updated)
+        with Simulation(name="test-simulation", time_stepped=True) as sim:
+            te = EntityTimeEventCatcher()
+            sim.add_entity(te)
+
+            sim.advance_and_wait(steps=5)
+            self.assertEqual(5, te.current_time)
+            self.assertEqual(5, len(te.times_updated))
+            self.assertEqual([1, 2, 3, 4, 5], te.times_updated)
 
     def test_advance_simulation_in_jumps(self):
         """Tests advancing the simulation multiple steps."""
-        sim = Simulation(name="test-simulation", time_stepped=False)
-        te = EntityTimeEventCatcher()
-        sim.add_entity(te)
+        with Simulation(name="test-simulation", time_stepped=False) as sim:
+            te = EntityTimeEventCatcher()
+            sim.add_entity(te)
 
-        sim.queue_event(Event(name="test-entity.some_event", sim_time=5))
-        sim.queue_event(Event(name="test-entity.some_event", sim_time=10))
-        sim.queue_event(Event(name="test-entity.some_event", sim_time=15))
-        sim.queue_event(Event(name="test-entity.some_event", sim_time=20))
-        sim.queue_event(Event(name="test-entity.some_event", sim_time=25))
+            sim.queue_event(Event(name="test-entity.some_event", sim_time=5))
+            sim.queue_event(Event(name="test-entity.some_event", sim_time=10))
+            sim.queue_event(Event(name="test-entity.some_event", sim_time=15))
+            sim.queue_event(Event(name="test-entity.some_event", sim_time=20))
+            sim.queue_event(Event(name="test-entity.some_event", sim_time=25))
 
-        sim.advance(cycles=7)
-        self.assertEqual(26, te.current_time)  # 1 (for event creation, 5-25 for events above, 26 for single time.
-        self.assertEqual(7, len(te.times_updated))
-        self.assertEqual([1, 5, 10, 15, 20, 25, 26], te.times_updated)
+            sim.advance_and_wait(steps=7)
+            self.assertEqual(26, te.current_time)  # 1 (for event creation, 5-25 for events above, 26 for single time.
+            self.assertEqual(7, len(te.times_updated))
+            self.assertEqual([1, 5, 10, 15, 20, 25, 26], te.times_updated)
 
     def start_simulation(self):
         """Tests starting the simulation."""
