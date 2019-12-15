@@ -547,6 +547,8 @@ class Simulation(Thread):
         if self.state == SimulationState.shutting_down:
             return
 
+        log(SIMULATION_LOGGING, f"Simulation {self.name} starting.")
+
         # TODO send a simulation setup event.
         self.state = SimulationState.paused
 

@@ -27,8 +27,8 @@ from scarab.loggers import StdOutLogger
 from scarab.simulation import Simulation, SIMULATION_LOGGING, EVENT_LOGGING, ENTITY_LOGGING
 
 StdOutLogger(topics=SIMULATION_LOGGING)
-StdOutLogger(topics=EVENT_LOGGING)
-StdOutLogger(topics=ENTITY_LOGGING)
+# StdOutLogger(topics=EVENT_LOGGING)
+# StdOutLogger(topics=ENTITY_LOGGING)
 
 
 class Bee(Entity):
