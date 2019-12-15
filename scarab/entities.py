@@ -212,6 +212,13 @@ class Entity(PropertyWrapper):
 
         super().__init__()
 
+    def __repr__(self):
+        """
+        Return a readable format for the entity.
+        :returns: A readable string for the entity.
+        """
+        return f"{self.name}: properties: {self.get_properties()}"
+
     # def handle_event(self, event, *args, **kwargs):
     def handle_event(self, event):
         """
