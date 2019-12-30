@@ -483,7 +483,8 @@ class Simulation(Thread):
         self._event_queue = PriorityEventQueue(priorities=all_event_priorities)
         self._event_mediator = EventMediator()
 
-        self._previous_time = -1
+        self._current_time = -1
+        self._previous_time = 0
 
         self.state = SimulationState.not_started
         self.license = [
@@ -628,7 +629,7 @@ class Simulation(Thread):
 
         # The simulation sets the guids.
         entity.guid = get_uuid()
-        self.log(ENTITY_LOGGING, f"Adding entity type {entity.name} with GUID {entity.guid}")
+        log(ENTITY_LOGGING, f"Adding entity type {entity.name} with GUID {entity.guid}")
 
         self._entities[entity.guid] = entity
         self.queue_event(EntityCreatedEvent(entity=RemoteEntity(entity)))
@@ -645,7 +646,7 @@ class Simulation(Thread):
         :type entity: Entity
         :return: None
         """
-        self.log(ENTITY_LOGGING, f"Removing entity type {entity.name} with GUID {entity.guid}")
+        log(ENTITY_LOGGING, f"Removing entity type {entity.name} with GUID {entity.guid}")
 
         self._entities.pop(entity.guid)
         self._event_mediator.deregister_entity(entity=entity)
@@ -659,19 +660,19 @@ class Simulation(Thread):
         """
         start_cycle_clock_time = time.time()
 
-        current_time = self._event_queue.next_time()
+        self._current_time = self._event_queue.next_time()
 
         # If there are no events in the queue, cycle one in any case.
         previous_time = self._previous_time
-        if not current_time:  # this causes the same behavior for time stepped and jumped simulations.
-            current_time = self._previous_time + 1
-        self._previous_time = current_time
+        if not self._current_time:  # this causes the same behavior for time stepped and jumped simulations.
+            self._current_time = self._previous_time + 1
+        self._previous_time = self._current_time
 
         # send a time update event for the next time.
-        self.__send_event(NewTimeEvent(previous_time=previous_time, new_time=current_time))
+        self.__send_event(NewTimeEvent(previous_time=previous_time, new_time=self._current_time))
 
         # send all of the events for the current time.
-        while self._event_queue.next_time() == current_time:
+        while self._event_queue.next_time() == self._current_time:
             # send all events from the queue to interested simulation entities.
             self.__send_event(self._event_queue.next())
 
@@ -733,7 +734,7 @@ class Simulation(Thread):
         for entity in self._entities.values():
             diffs = self._previous_state[entity.guid].compare_and_update(entity)
             if len(diffs):
-                evt = EntityChangedEvent(entity=entity, changed_properties=diffs)
+                evt = EntityChangedEvent(entity=RemoteEntity(entity), changed_properties=diffs)
                 self.__send_event(evt)  # Send out notification at the end of the cycle, so other entities can update.
 
     def __send_event(self, event):
@@ -742,16 +743,7 @@ class Simulation(Thread):
         :param event: The event to send.
         :return: Nothing
         """
-        self.log(EVENT_LOGGING, f"sending event {event.name} at sim time {event.sim_time}: {event}")
+        log(EVENT_LOGGING, f"sending event {event.name} at sim time {event.sim_time}: {event}")
+        event.sim_time = self._current_time
         self._event_mediator.send_event(event=event)
 
-    def log(self, topic, message) -> None:
-        """
-        Logs a message for the given (previous) sim time.
-        :param topic: The topic to log to.
-        :type topic: str
-        :param message: The message to log.
-        :type message: str
-        :return:  None
-        """
-        log(topic=topic, message=f"{self._previous_time}: {message}")

@@ -27,6 +27,6 @@ setup(name='scarab',
       packages=find_packages(),
       zip_safe=False,
       install_requires=[
-            "pyyaml"
+            "pyyaml", 'python-qt5'
       ]
       )

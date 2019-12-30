@@ -19,7 +19,7 @@ This module is a generator of simulations from YAML.
 import argparse
 import os
 
-from scarab.io import SimulationYAMLReader, SimulationWriter
+from scarab.rw import SimulationYAMLReader, SimulationWriter
 from scarab.util import eprint
 
 

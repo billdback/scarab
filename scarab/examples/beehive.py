@@ -19,16 +19,8 @@ and try to keep it in a given temperature range.
 
 It also includes the test code to show how entities can be verified.
 """
-import argparse
-import random
 
 from scarab.entities import *
-from scarab.loggers import StdOutLogger
-from scarab.simulation import Simulation, SIMULATION_LOGGING, EVENT_LOGGING, ENTITY_LOGGING
-
-StdOutLogger(topics=SIMULATION_LOGGING)
-# StdOutLogger(topics=EVENT_LOGGING)
-# StdOutLogger(topics=ENTITY_LOGGING)
 
 
 class Bee(Entity):
@@ -254,16 +246,17 @@ class OutsideTemperature(Entity):
         self.current_temp = self.__minute_temps[new_time % len(self.__minute_temps)]
 
 
-class BeehiveDisplay(Entity):
-    """Displays the results of the beehive."""
+class BeehiveDisplayModel(Entity):
+    """Manages content for display by the application.  Used instead of the beehive display class."""
 
     def __init__(self):
         """
-        Creates a new beehive display.
+        Creates a new beehive display model.
         """
-        self._beehive = None
-        self._outside_temp = None
-        super().__init__(name="behive_display")
+        super().__init__(name="behive_display_model")
+
+        self.beehive = None
+        self.outside_temp = None
 
         # mins are set to a very large number so they will be properly set the next time.
         self.min_outside_temp = 1000000
@@ -277,13 +270,8 @@ class BeehiveDisplay(Entity):
         self.min_number_bees_fanning = 1000000
         self.max_number_bees_fanning = 0
 
-    @entity_created_event_handler(entity_name="beehive")
-    def handle_beehive_changed(self, beehive):
-        """Handles the beehive changing.
-        :param beehive: The beehive that changed.
-        :type beehive: Entity
-        """
-        self._beehive = beehive
+        self.previous_time = -1
+        self.new_time = 0
 
     @entity_changed_event_handler(entity_name="beehive")
     def handle_beehive_changed(self, beehive, changed_properties):
@@ -294,17 +282,17 @@ class BeehiveDisplay(Entity):
         :type changed_properties: list of str
         """
         assert changed_properties is not None
-        self._beehive = beehive
+        self.beehive = beehive
 
-        self.min_hive_temp = min(self.min_hive_temp, self._beehive.current_temp)
-        self.max_hive_temp = max(self.max_hive_temp, self._beehive.current_temp)
+        self.min_hive_temp = min(self.min_hive_temp, beehive.current_temp)
+        self.max_hive_temp = max(self.max_hive_temp, beehive.current_temp)
 
-        self.min_number_bees = min(self.min_number_bees, self._beehive.number_bees)
-        self.max_number_bees = max(self.max_number_bees, self._beehive.number_bees)
-        self.min_number_bees_fanning = min(self.min_number_bees_fanning, self._beehive.number_bees_fanning)
-        self.max_number_bees_fanning = max(self.max_number_bees_fanning, self._beehive.number_bees_fanning)
-        self.min_number_bees_buzzing = min(self.min_number_bees_buzzing, self._beehive.number_bees_buzzing)
-        self.max_number_bees_buzzing = max(self.max_number_bees_buzzing, self._beehive.number_bees_buzzing)
+        self.min_number_bees = min(self.min_number_bees, beehive.number_bees)
+        self.max_number_bees = max(self.max_number_bees, beehive.number_bees)
+        self.min_number_bees_fanning = min(self.min_number_bees_fanning, beehive.number_bees_fanning)
+        self.max_number_bees_fanning = max(self.max_number_bees_fanning, beehive.number_bees_fanning)
+        self.min_number_bees_buzzing = min(self.min_number_bees_buzzing, beehive.number_bees_buzzing)
+        self.max_number_bees_buzzing = max(self.max_number_bees_buzzing, beehive.number_bees_buzzing)
 
     @entity_changed_event_handler(entity_name="outside_temperature")
     def handle_temp_changed(self, temp, changed_properties):
@@ -316,98 +304,18 @@ class BeehiveDisplay(Entity):
         :return: None
         """
         assert changed_properties
-        self._outside_temp = temp.current_temp
-        self.min_outside_temp = min(self.min_outside_temp, self._outside_temp)
-        self.max_outside_temp = max(self.max_outside_temp, self._outside_temp)
+        self.outside_temp = temp.current_temp
+        self.min_outside_temp = min(self.min_outside_temp, self.outside_temp)
+        self.max_outside_temp = max(self.max_outside_temp, self.outside_temp)
 
     @time_update_event_handler
     def handle_time_update(self, previous_time, new_time):
-        """
-        Write output on the stats every time an update occurs.
-        :param previous_time: The previous sim time.
+        """Handles the time changing to calculate the temp of the hive.
+        :param previous_time: The previous simulation time.
         :type previous_time: int
-        :param new_time: The new sim time.
+        :param new_time: The new simulation time.
         :type new_time: int
-        :return: None
         """
-        if not new_time % 100:
-            print("=======================================")
-            print(f"Update from time {previous_time} to {new_time}")
-
-            print(f"Temperature status:")
-            if not self._outside_temp:
-                print("\tunknown")
-            else:
-                print(f"\toutside temp: {self._outside_temp:.1f}"
-                      f" (min: {self.min_outside_temp:.1f} max: {self.max_outside_temp:.1f})")
-                print(f"\thive temp: {self._beehive.current_temp:.1f}"
-                      f" (min: {self.min_hive_temp:.1f} max: {self.max_hive_temp:.1f})")
-
-            print(f"Bees:")
-            if not self._beehive:
-                print("\tunknown")
-            else:
-                print(f"\ttotal bees: {self._beehive.number_bees}"
-                      f" (min: {self.min_number_bees} max: {self.max_number_bees})")
-                print(f"\tbees buzzing: {self._beehive.number_bees_buzzing}"
-                      f" (min: {self.min_number_bees_buzzing} max: {self.max_number_bees_buzzing})")
-                print(f"\tbees fanning: {self._beehive.number_bees_fanning}"
-                      f" (min: {self.min_number_bees_fanning} max: {self.max_number_bees_fanning})")
-            print("")
-
-
-def get_args():
-    """
-    Returns command line arguments.
-    :return: The command line arguments for the simulation run.
-    :rtype: argparse.Namespace
-    """
-    parser = argparse.ArgumentParser(description="Beehive simulation where bees respond to varying temperatures during "
-                                                 "the day to keep the hive in a particular range.  The goal of this "
-                                                 "simulation is to show how variations in populations lead to more "
-                                                 "graceful changes (temp regulation) vs. set values that cause extreme "
-                                                 "changes.")
-
-    parser.add_argument("--step_length", type=int, default=0, help="length of simulation step in seconds")
-    parser.add_argument("--number_bees", type=int, default=10, help="number of bees in the hive")
-    parser.add_argument("--bee_variance", default="vary",
-                        choices=["vary", "same"],
-                        help="vary: bees have different temps for buzz and fan.\n"
-                             "same: bees have same temp for buzz and fan.")
-    parser.add_argument("--max_steps", type=int, default=10080, help="Number of steps as minutes.")
-
-    return parser.parse_args()
-
-
-if __name__ == "__main__":
-    args = get_args()
-
-    print("Running the beehive simulation.")
-    print(args)
-
-    with Simulation(name="beehive", time_stepped=True, minimum_step_time=args.step_length) as simulation:
-
-        # pick some arbitrary values.
-        BUZZING_IMPACT = 0.5
-        FANNING_IMPACT = 0.5
-        MIN_OUTSIDE_TEMP = 50.0
-        MAX_OUTSIDE_TEMP = 90.0
-        TARGET_BEE_BUZZING = 60.0  # warm up
-        TARGET_BEE_FANNING = 65.0  # cool down
-
-        simulation.add_entity(Beehive(start_temp=TARGET_BEE_BUZZING,
-                                      buzzing_impact=BUZZING_IMPACT, fanning_impact=FANNING_IMPACT))
-        simulation.add_entity(OutsideTemperature(min_temp=MIN_OUTSIDE_TEMP, max_temp=MAX_OUTSIDE_TEMP))
-        simulation.add_entity(BeehiveDisplay())
-
-        # create and add the bees
-        for bee_number in range(0, args.number_bees):
-            # if the variance is "same", then all bees get the same fan and flap temps.  If not, vary randomly.
-            if args.bee_variance == "vary":
-                bee_fan = random.uniform(TARGET_BEE_FANNING * .9, TARGET_BEE_FANNING * 1.1)
-                bee_buzz = random.uniform(TARGET_BEE_BUZZING * .9, TARGET_BEE_BUZZING * 1.1)
-                simulation.add_entity(Bee(fan_temp=bee_fan, buzz_temp=bee_buzz))
-            else:
-                simulation.add_entity(Bee(fan_temp=TARGET_BEE_FANNING, buzz_temp=TARGET_BEE_BUZZING))
-
-        simulation.advance_and_wait(steps=args.max_steps)
+        assert previous_time is not None
+        self.previous_time = previous_time
+        self.new_time = new_time

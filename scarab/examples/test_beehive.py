@@ -22,7 +22,8 @@ It also includes the test code to show how entities can be verified.
 import unittest
 from copy import deepcopy
 
-from .beehive import *
+from scarab.simulation import RemoteEntity
+from scarab.examples.beehive import *
 
 
 class TestBeeEntity(unittest.TestCase):
@@ -118,7 +119,7 @@ class TestBeehiveEntity(unittest.TestCase):
 
         # the following is needed for testing since the framework sends copies.
         # TODO create testing support to replicate simulation behavior.
-        bee = deepcopy(bee)
+        bee = RemoteEntity(bee)
         bee.is_buzzing = True
         beehive.handle_bee_update(bee=bee, changed_properties=["is_buzzing"])
         self.assertEqual(1, beehive.number_bees_buzzing)
@@ -192,12 +193,12 @@ class TestOutsideTemp(unittest.TestCase):
         self.assertEqual(620, ot.current_temp)
 
 
-class TestBeehiveDisplay(unittest.TestCase):
+class TestBeehiveDisplayModel(unittest.TestCase):
     """Test the display class."""
 
     def test_display(self):
         """Tests the display."""
-        display = BeehiveDisplay()
+        display = BeehiveDisplayModel()
         beehive = Beehive(start_temp=50, buzzing_impact=.5, fanning_impact=.5)
 
         bee1 = Bee(buzz_temp=25, fan_temp=50)

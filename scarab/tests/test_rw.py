@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import unittest
 
-from scarab.io import SimulationYAMLReader, SimulationWriter
+from scarab.rw import SimulationYAMLReader, SimulationWriter
 
 
 TEST_SIMULATION_YAML = """
