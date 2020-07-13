@@ -95,7 +95,7 @@ class BeehiveApp:
                             choices=["vary", "same"],
                             help="vary: bees have different temps for buzz and fan.\n"
                                  "same: bees have same temp for buzz and fan.")
-        parser.add_argument("--max_steps", type=int, default=10080, help="Number of steps as minutes.")
+        parser.add_argument("--max_steps", type=int, default=10080, help="Number of steps as simulation minutes.")
 
         return parser.parse_args()
 

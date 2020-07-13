@@ -257,35 +257,33 @@ class EventMediator:
         """
         interest = entity.get_event_interest()
 
-        for event_name in interest.named_events:
-            entity_list = self._named_event_interest.get(event_name, None)
-            if not entity_list:
-                entity_list = []
-                self._named_event_interest[event_name] = entity_list
-            entity_list.append(entity)
-
-        for entity_name in interest.entity_created_events:
-            entity_list = self._entity_created_interest.get(entity_name, None)
-            if not entity_list:
-                entity_list = []
-                self._entity_created_interest[entity_name] = entity_list
-            entity_list.append(entity)
-
-        for entity_name in interest.entity_changed_events:
-            entity_list = self._entity_changed_interest.get(entity_name, None)
-            if not entity_list:
-                entity_list = []
-                self._entity_changed_interest[entity_name] = entity_list
-            entity_list.append(entity)
-
-        for entity_name in interest.entity_destroyed_events:
-            entity_list = self._entity_destroyed_interest.get(entity_name, None)
-            if not entity_list:
-                entity_list = []
-                self._entity_destroyed_interest[entity_name] = entity_list
-            entity_list.append(entity)
-
+        self._add_entity_interest(entity=entity, entity_interest=interest.named_events,
+                                  simulation_interest=self._named_event_interest)
+        self._add_entity_interest(entity=entity, entity_interest=interest.entity_created_events,
+                                  simulation_interest=self._entity_created_interest)
+        self._add_entity_interest(entity=entity, entity_interest=interest.entity_changed_events,
+                                  simulation_interest=self._entity_changed_interest)
+        self._add_entity_interest(entity=entity, entity_interest=interest.entity_destroyed_events,
+                                  simulation_interest=self._entity_destroyed_interest)
         entity._simulation = self
+
+    @staticmethod
+    def _add_entity_interest(entity, entity_interest, simulation_interest):
+        """
+        Adds entities to the
+        :param entity: The entity to add interest for.
+        :type entity: Entity
+        :param entity_interest: The list to check and add it to.
+        :type entity_interest: list
+        :param
+        :return: None
+        """
+        for name in entity_interest:
+            entity_list = simulation_interest.get(name, None)
+            if not entity_list:
+                entity_list = []
+                simulation_interest[name] = entity_list
+            entity_list.append(entity)
 
     def deregister_entity(self, entity):
         """
@@ -450,7 +448,8 @@ class Simulation(Thread):
     """
     ADVANCE_UNLIMITED = -10  # indicates that there is no limit to advancing, so just keep going.
 
-    def __init__(self, name, time_stepped=False, max_time=-1, minimum_step_time=0, event_priorities=None):
+    def __init__(self, name, time_stepped=False, max_time=-1, minimum_step_time=0, event_priorities=None,
+                 hide_license=False):
         """
         Creates a new simulation.
         :param name: Name of the simulation.
@@ -458,15 +457,14 @@ class Simulation(Thread):
         :param time_stepped: Indicates if the simulation is time stepped (i.e. one increment at a time) or not.  If
         False, then the next time sent out is the next time in the queue.
         :type time_stepped: bool
-        :param start_paused: If true, the simulation will start in a paused state.  If not, it will immediately
-        start running.
-        :type start_paused: bool
         :param max_time: Maximum time in the simulation.  Once this time is reached, the simulation shuts down.
         :type max_time: int
         :param minimum_step_time: Mininum length of a single step in seconds.
         :type minimum_step_time: int
         :param event_priorities: Priorities of simulation events.  These fall *after* the standard events.
         :type event_priorities: list of str
+        :param hide_license: Hides the license that gets printed.
+        :type hide_license: bool
         """
         assert name
         self.time_stepped = time_stepped
@@ -507,7 +505,10 @@ class Simulation(Thread):
             "",
             "--------------------------------------------------------------------------"
         ]
-        self.print_license()
+        if not hide_license:
+            self.print_license()
+
+        self._views = []
 
         super().__init__(name=name)
 
@@ -550,7 +551,7 @@ class Simulation(Thread):
 
         log(SIMULATION_LOGGING, f"Simulation {self.name} starting.")
 
-        # TODO send a simulation setup event.
+        self.__send_event(SimulationStartupEvent())
         self.state = SimulationState.paused
 
         # Keep running until shutting down.  Note that this is not a deamon, so shutdowns can be abrupt.
@@ -654,6 +655,16 @@ class Simulation(Thread):
 
         self.__send_event(EntityDestroyedEvent(entity=RemoteEntity(entity)))
 
+    def register_view(self, view):
+        """
+        Adds a new view to be called on time updates.
+        :param view: The view interface to call.
+        :type view: ViewInterface
+        :return: None
+        """
+        assert isinstance(view, ViewInterface)
+        self._views.append(view)
+
     def step(self) -> None:
         """
         Causes the simulation to advance a single step.
@@ -668,8 +679,12 @@ class Simulation(Thread):
             self._current_time = self._previous_time + 1
         self._previous_time = self._current_time
 
+        log(SIMULATION_LOGGING, f"Advancing the simulation from {previous_time} to {self._current_time}.")
+
         # send a time update event for the next time.
         self.__send_event(NewTimeEvent(previous_time=previous_time, new_time=self._current_time))
+        # also notify the views to update.
+        self._update_views(previous_time=previous_time, new_time=self._current_time)
 
         # send all of the events for the current time.
         while self._event_queue.next_time() == self._current_time:
@@ -682,6 +697,18 @@ class Simulation(Thread):
         while elapsed_time < self.minimum_step_time:
             time.sleep(1)
             elapsed_time = time.time() - start_cycle_clock_time
+
+    def _update_views(self, previous_time, new_time):
+        """
+        Updates the views that have been registered with the simulation.  Only happens on time updates.
+        :param previous_time: The previous time the simulation is advancing from.
+        :type previous_time: int
+        :param new_time: The new time the simulation is advancing to.
+        :type new_time: int
+        :return: None
+        """
+        for view in self._views:
+            view.update_view(previous_time=previous_time, new_time=new_time)
 
     def advance(self, steps=ADVANCE_UNLIMITED):
         """
@@ -699,6 +726,7 @@ class Simulation(Thread):
 
         self.__steps_to_advance = steps
         self.state = SimulationState.running
+        print(f"simulation state is {self.state}")
 
     def advance_and_wait(self, steps=1):
         """
@@ -716,7 +744,8 @@ class Simulation(Thread):
 
         # now just wait for the time to catch up.
         while self._previous_time < (start_time + steps):
-            time.sleep(0.5)
+            # possible race condition.  It's possible that this returns before the last cycle is complete.
+            time.sleep(1)
 
     def pause(self):
         """
@@ -724,6 +753,7 @@ class Simulation(Thread):
         """
         assert self.state != SimulationState.not_started  # make sure the simulation has actually been started.
         self.state = SimulationState.paused
+        log(SIMULATION_LOGGING, f"Pausing the simulation.")
 
     def __send_change_events(self):
         """
@@ -747,3 +777,42 @@ class Simulation(Thread):
         event.sim_time = self._current_time
         self._event_mediator.send_event(event=event)
 
+
+class ViewInterface(Entity):
+    """
+    Defines the basics for a view that can be connected to the simulation for display.
+    Additional attributes would likely be set by the child.
+    """
+
+    def __init__(self, name, callback=None):
+        """
+        Creates a new view interface.
+        :param name: The name of the view.
+        :type name: str
+        :param callback: A method to call to update.  Currently this only occurs on time updates.
+        """
+        assert name
+
+        super().__init__(name=name)  # might want a better naming convention.
+        self._callbacks = []  # List of callbacks for updates.
+        if callback:
+            self.add_callback(callback)
+
+    def add_callback(self, callback):
+        """
+        Adds a callback.  Currently only time updates are supported.
+        #TODO add the ability to add callbacks on specific events.
+        """
+        assert callback
+        self._callbacks.append(callback)
+
+    def update_view(self, previous_time, new_time):
+        """
+        Called when the time gets updated.
+        :param previous_time: The previous simulation time.
+        :type previous_time: int
+        :param new_time: The new simulation time.
+        :type new_time: int
+        """
+        for callback in self._callbacks:
+            callback(previous_time, new_time)

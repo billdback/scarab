@@ -157,24 +157,24 @@ class TestSimulation(unittest.TestCase):
 
     def test_print_license(self):
         """Prints the license.  Visual test only."""
-        sim = Simulation(name="test-simulation")
+        sim = Simulation(name="test-simulation", hide_license=True)
         sim.print_license()
 
     def test_create_simulation(self):
         """Tests creating a simulation."""
-        sim = Simulation(name="test-simulation")
+        sim = Simulation(name="test-simulation", hide_license=True)
         self.assertFalse(sim.time_stepped)
         self.assertIsNone(sim.next_time())
         self.assertEqual(sim.number_entities(), 0)
 
-        sim = Simulation(name="test-simulation", time_stepped=True)
+        sim = Simulation(name="test-simulation", time_stepped=True, hide_license=True)
         self.assertTrue(sim.time_stepped)
         self.assertIsNone(sim.next_time())
 
     def test_add_entity(self):
         """Tests adding entities to a simulation."""
 
-        with Simulation(name="test-simulation") as sim:
+        with Simulation(name="test-simulation", hide_license=True) as sim:
             self.assertEqual(sim.number_entities(), 0)
             self.assertEqual(sim.next_time(), None)
             self.assertEqual(sim.number_queued_events(), 0)
@@ -197,7 +197,7 @@ class TestSimulation(unittest.TestCase):
 
     def test_recognize_entity_changes(self):
         """Test recognizing when entities change and sending change messages."""
-        with Simulation(name="test-simulation") as sim:
+        with Simulation(name="test-simulation", hide_license=True) as sim:
 
             te_change = TestEntityToChange()
             sim.add_entity(te_change)
@@ -221,7 +221,7 @@ class TestSimulation(unittest.TestCase):
         te1 = TestEntityOne()
         te2 = TestEntityTwo()
 
-        with Simulation(name="test-simulation") as sim:
+        with Simulation(name="test-simulation", hide_license=True) as sim:
             sim.add_entity(te1)
             sim.add_entity(te2)
             sim.advance_and_wait()
@@ -239,7 +239,7 @@ class TestSimulation(unittest.TestCase):
     def test_advance_simulation_in_steps(self):
         """Tests advancing the simulation a step at a time."""
 
-        with Simulation(name="test-simulation", time_stepped=True) as sim:
+        with Simulation(name="test-simulation", time_stepped=True, hide_license=True) as sim:
             te = EntityTimeEventCatcher()
             sim.add_entity(te)
 
@@ -250,7 +250,7 @@ class TestSimulation(unittest.TestCase):
 
     def test_advance_simulation_in_jumps(self):
         """Tests advancing the simulation multiple steps."""
-        with Simulation(name="test-simulation", time_stepped=False) as sim:
+        with Simulation(name="test-simulation", time_stepped=False, hide_license=True) as sim:
             te = EntityTimeEventCatcher()
             sim.add_entity(te)
 
@@ -267,7 +267,7 @@ class TestSimulation(unittest.TestCase):
 
     def test_start_simulation(self):
         """Tests starting the simulation."""
-        with Simulation(name="test simulation") as sim:
+        with Simulation(name="test simulation", hide_license=True) as sim:
             time.sleep(1)  # wait for start.
             self.assertEqual(SimulationState.paused, sim.state)
             sim.advance()
@@ -275,7 +275,7 @@ class TestSimulation(unittest.TestCase):
 
     def test_pause_and_resume_simulation(self):
         """Tests starting the simulation."""
-        with Simulation(name="test simulation") as sim:
+        with Simulation(name="test simulation", hide_license=True) as sim:
             time.sleep(1)  # wait for start.
             self.assertEqual(SimulationState.paused, sim.state)
             sim.advance()
@@ -284,6 +284,38 @@ class TestSimulation(unittest.TestCase):
             self.assertEqual(SimulationState.paused, sim.state)
             sim.advance()
             self.assertEqual(SimulationState.running, sim.state)
+
+
+class ViewInterfaceX(ViewInterface):
+    """Class that implements the ViewInterface."""
+
+    def __init__(self):
+        super().__init__(name="test_view_x", callback=self.callback)
+        self.times_called = 0
+        self.min_time = 10
+        self.max_time = 0
+
+    def callback(self, previous_time, new_time):
+        """Method to call."""
+        self.times_called += 1
+        self.min_time = min(previous_time, self.min_time)
+        self.max_time = max(new_time, self.max_time)
+
+
+class TestViewInterface(unittest.TestCase):
+    """Test for the ViewInterface class."""
+
+    def test_callback(self):
+        """Tests views getting called back."""
+        view = ViewInterfaceX()
+
+        with Simulation(name="test_view_sim", time_stepped=True, hide_license=True) as simulation:
+            simulation.register_view(view)
+            simulation.advance_and_wait(steps=4)
+
+        self.assertEqual(4, view.times_called)
+        self.assertEqual(0, view.min_time)
+        self.assertEqual(4, view.max_time)
 
 
 if __name__ == '__main__':

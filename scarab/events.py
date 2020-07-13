@@ -111,7 +111,8 @@ class PropertyWrapper:
         elif key in super.__dict__:
             attr = super.__dict__[key]
         else:
-            raise AttributeError(f"Unknown property {key} for class {self}")
+            # raise AttributeError(f"Unknown property {key} for class {self}")
+            attr = super().__getattribute__(key)
 
         if isinstance(attr, Property):
             return attr.value
@@ -166,6 +167,7 @@ TIME_EVENTS = "scarab.time.*"
 ENTITY_CREATED_EVENT = "scarab.entity.created"
 ENTITY_DESTROYED_EVENT = "scarab.entity.destroyed"
 ENTITY_CHANGED_EVENT = "scarab.entity.changed"
+SIMULATION_STARTUP = "scarab.simulation.simulation_startup"
 SIMULATION_SHUTDOWN = "scarab.simulation.simulation_shutdown"
 NEW_TIME_EVENT = "scarab.time.new"
 
@@ -220,6 +222,16 @@ class EntityChangedEvent(Event):
         self.entity = entity
         self.changed_properties = changed_properties
         super().__init__(name=ENTITY_CHANGED_EVENT)
+
+
+class SimulationStartupEvent(Event):
+    """Creates an event to indicate that the simulation is starting."""
+
+    def __init__(self):
+        """
+        Indicates the simulation is shutting down.
+        """
+        super().__init__(name=SIMULATION_STARTUP)
 
 
 class SimulationShutdownEvent(Event):

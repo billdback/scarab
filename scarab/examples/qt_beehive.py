@@ -28,7 +28,7 @@ import random
 from scarab.examples.beehive import *
 from scarab.entities import *
 from scarab.loggers import StdOutLogger
-from scarab.simulation import Simulation, SIMULATION_LOGGING, EVENT_LOGGING, ENTITY_LOGGING
+from scarab.simulation import Simulation, ViewInterface, SIMULATION_LOGGING, EVENT_LOGGING, ENTITY_LOGGING
 
 StdOutLogger(topics=SIMULATION_LOGGING)
 # StdOutLogger(topics=EVENT_LOGGING)
@@ -102,59 +102,104 @@ class BeehiveDisplayModel(Entity):
         self.max_outside_temp = max(self.max_outside_temp, self._outside_temp)
 
 
-class MainWindow(qtw.QWidget, Entity):
+class MainWindow(qtw.QWidget):
     """Creates a display for the simulation.  The display manages the simulation and updates."""
 
     def __init__(self):
         """Creates a QT UI."""
-        super().__init__(flags=qtc.Qt.WindowCloseButtonHint, name="beehive_display")
+        super().__init__(flags=qtc.Qt.WindowCloseButtonHint)
 
-        self.beehive_display_model = None
+        self.simulation = Simulation(name="QtBeehive")
 
         self.setWindowTitle("Beehive")
         self.resize(1200, 600)
 
-        self.__create_widgets()
-        self.__layout_widgets()
+        self._create_widgets()
+        self._layout_widgets()
+        self._setup_actions()
 
         self.show()
 
-    def __create_widgets(self):
+    def _create_simulation(self):
+        """Creates the simulation based on the settings."""
+
+        # Get the settings and make sure they are valid.
+        try:
+            number_bees = int(self.number_bees_edit.text())
+            vary_bees = self.vary_bees.isChecked()
+
+            outside_min_temp = float(self.outside_temp_min_edit.text())
+            outside_max_temp = float(self.outside_temp_max_edit.text())
+
+            buzzing_impact = float(self.beehive_buzzing_impact_edit.text())
+            fanning_impact = float(self.beehive_fanning_impact_edit.text())
+
+            with self.simulation as simulation:
+                self.simulation.register_view(
+                    view=ViewInterface(name="Beehive View", callback=self._handle_simulation_udpate))
+                # Create the entities.
+                self.simulation.add_entity(BeehiveDisplayModel())
+                self.simulation.add_entity(OutsideTemperature(min_temp=outside_min_temp, max_temp=outside_max_temp))
+                self.simulation.add_entity(Beehive(start_temp=outside_min_temp,
+                                                   buzzing_impact=buzzing_impact, fanning_impact=fanning_impact))
+
+        except Exception as e:
+            print(f"Error creating the simulation: {e}")
+
+    def _handle_simulation_udpate(self, previous_time, new_time):
+        """
+        Handles the simulation updating.
+        :param previous_time: The previous simulation time.
+        :type previous_time: int
+        :param new_time: The new simulation time.
+        :type new_time: int
+        :return: None
+        """
+        print("got new simulation time.")
+        if new_time % 100 == 0:
+            self.temp_chart.setText(f"Advancing time to {new_time}")
+
+    def _create_widgets(self):
         """Create the widgets that will be used in the UI."""
 
         # Outside temperature options.
         self.outside_temp_min_label = qtw.QLabel("Outside minimum: ")
         self.outside_temp_min_edit = qtw.QLineEdit()
+        self.outside_temp_min_edit.setText("20.0")
         self.outside_temp_min_edit.setValidator(qtg.QIntValidator(0, 25))
         self.outside_temp_max_label = qtw.QLabel("Outside maximum: ")
         self.outside_temp_max_edit = qtw.QLineEdit()
+        self.outside_temp_max_edit.setText("90.0")
         self.outside_temp_max_edit.setValidator(qtg.QIntValidator(50, 100))
 
         # Beehive temparature options.
-        self.beehive_temp_min_label = qtw.QLabel("Beehive minimum: ")
-        self.beehive_temp_min_edit = qtw.QLineEdit()
-        self.beehive_temp_min_edit.setValidator(qtg.QIntValidator(0, 25))
-        self.beehive_temp_max_label = qtw.QLabel("Beehive maximum: ")
-        self.beehive_temp_max_edit = qtw.QLineEdit()
-        self.beehive_temp_max_edit.setValidator(qtg.QIntValidator(50, 100))
+        self.beehive_buzzing_impact_label = qtw.QLabel("Buzzing impact: ")
+        self.beehive_buzzing_impact_edit = qtw.QLineEdit()
+        self.beehive_buzzing_impact_edit.setText("0.5")
+        self.beehive_fanning_impact_label = qtw.QLabel("Fanning impact: ")
+        self.beehive_fanning_impact_edit = qtw.QLineEdit()
+        self.beehive_fanning_impact_edit.setText("0.5")
 
         # Bee options.
         self.number_bees_label = qtw.QLabel("Number bees:  ")
         self.number_bees_edit = qtw.QLineEdit()
         self.number_bees_edit.setValidator(qtg.QIntValidator(1, 20))
+        self.number_bees_edit.setText("20")
 
         # Radio button options for varying bee temps.
         self.vary_bees = qtw.QRadioButton("Vary bees")
         self.no_vary_bees = qtw.QRadioButton("Don't vary bees")
+        self.vary_bees.setChecked(True)
 
-        # Buttons to start/pause/resume.  Use regular exit buttons.
-        self.control_button = qtw.QPushButton("Start")
+        # Buttons to start/pause/resume and exit.
+        self.start_pause_button = qtw.QPushButton("Start")
+        self.exit_button = qtw.QPushButton("Exit")
 
         # placeholders for charts.
         self.temp_chart = qtw.QTextEdit()
         self.bee_chart = qtw.QTextEdit()
 
-    def __layout_widgets(self):
+    def _layout_widgets(self):
         """Creates the layouts and lays out widgets."""
         # Main layout is horizontal with two columns.
         main_layout = qtw.QHBoxLayout()
@@ -169,14 +214,25 @@ class MainWindow(qtw.QWidget, Entity):
         # Add the group box for settings and buttons.
         configuration_form = qtw.QGroupBox("Configuration")
         config_control_layout.addWidget(configuration_form)
-        config_control_layout.addWidget(self.control_button)
+        config_control_layout.addWidget(self.start_pause_button)
+        config_control_layout.addWidget(self.exit_button)
 
         # Add configuration options.
         configuration_form_details_layout = qtw.QGridLayout()
         configuration_form.setLayout(configuration_form_details_layout)
 
-        configuration_form_details_layout.addWidget(self.number_bees_label, 1, 1)
-        configuration_form_details_layout.addWidget(self.number_bees_edit, 1, 2)
+        bee_groupbox = qtw.QGroupBox("Bee Settings")
+        configuration_form_details_layout.addWidget(bee_groupbox, 1, 1, 1, 2)
+        configuration_bee_layout = qtw.QGridLayout()
+        bee_groupbox.setLayout(configuration_bee_layout)
+
+        configuration_bee_layout.addWidget(self.beehive_buzzing_impact_label, 3, 1)
+        configuration_bee_layout.addWidget(self.beehive_buzzing_impact_edit, 3, 2)
+        configuration_bee_layout.addWidget(self.beehive_fanning_impact_label, 4, 1)
+        configuration_bee_layout.addWidget(self.beehive_fanning_impact_edit, 4, 2)
+
+        configuration_bee_layout.addWidget(self.number_bees_label, 1, 1)
+        configuration_bee_layout.addWidget(self.number_bees_edit, 1, 2)
 
         configuration_form_details_layout.addWidget(qtw.QLabel(), 2, 1, 1, 2)
 
@@ -189,11 +245,6 @@ class MainWindow(qtw.QWidget, Entity):
         configuration_temp_layout.addWidget(self.outside_temp_min_edit, 1, 2)
         configuration_temp_layout.addWidget(self.outside_temp_max_label, 2, 1)
         configuration_temp_layout.addWidget(self.outside_temp_max_edit, 2, 2)
-
-        configuration_temp_layout.addWidget(self.beehive_temp_min_label, 3, 1)
-        configuration_temp_layout.addWidget(self.beehive_temp_min_edit, 3, 2)
-        configuration_temp_layout.addWidget(self.beehive_temp_max_label, 4, 1)
-        configuration_temp_layout.addWidget(self.beehive_temp_max_edit, 4, 2)
 
         # Blanks for spacing.  Probably better way to do this.
         configuration_form_details_layout.addWidget(qtw.QLabel(), 4, 1, 1, 2)
@@ -222,45 +273,38 @@ class MainWindow(qtw.QWidget, Entity):
         bee_chart_form.setLayout(bee_chart_form_layout)
         bee_chart_form_layout.addWidget(self.bee_chart)
 
-    @entity_created_event_handler(entity_name="beehive_display_model")
-    def handle_beehive_display_model_created(self, display_model):
+    def _setup_actions(self):
         """
-        Handles the display model being created.  Assumes there is only one.
-        :param display_model: The display model.
-        :type display_model: BeehiveDisplayModel
+        Sets up the widget actions.  Only the buttons actually have actions.
         """
-        self.beehive_display_model = display_model
+        self.start_pause_button.clicked.connect(self.start_pause_button_clicked)
+        self.exit_button.clicked.connect(self.exit_button_clicked)
 
-    @entity_destroyed_event_handler(entity_name="beehive_display_model")
-    def handle_beehive_display_model_created(self, display_model):
-        """
-        Handles the display model being created.  Assumes there is only one.
-        :param display_model: The display model.
-        :type display_model: BeehiveDisplayModel
-        """
-        self.beehive_display_model = None
+    @qtc.pyqtSlot()
+    def start_pause_button_clicked(self):
+        """Handles clicks to the start/pause button."""
+        button_text = self.start_pause_button.text()
+        if button_text == "Start":
+            print("Starting the simulation.")
+            self.start_pause_button.setText("Pause")
+            self._create_simulation()
+            self.simulation.advance()
+        elif button_text == "Pause":
+            print("Pausing the simulation.")
+            self.start_pause_button.setText("Resume")
+            self.simulation.pause()
+        elif button_text == "Resume":
+            print("Resuming the simulation.")
+            self.start_pause_button.setText("Pause")
+            self.simulation.advance()
+        else:
+            print("Unknown state - not doing anything.")
 
-    @entity_changed_event_handler(entity_name="beehive_display_model")
-    def handle_beehive_display_model_created(self, display_model, changed_properties):
-        """
-        Handles the display model being created.  Assumes there is only one.
-        :param display_model: The display model.
-        :type display_model: BeehiveDisplayModel
-        :param changed_properties: The properties that changed.
-        :type changed_properties: list of str
-        """
-        self.beehive_display_model = changed_properties
-
-    @time_update_event_handler
-    def handle_time_update(self, prev_time, new_time):
-        """
-        Handles time updates and updates the GUI.
-        :param prev_time: The previous time in the simulation.
-        :type prev_time: int
-        :param new_time: The new time in the simulation.
-        :type new_time: int
-        """
-        pass
+    @qtc.pyqtSlot()
+    def exit_button_clicked(self):
+        print("Exiting")
+        self.simulation.shutdown()
+        self.close()
 
 
 if __name__ == "__main__":
