@@ -19,6 +19,7 @@ TODO None of this is set up to be thread safe.
 TODO There may be opportunities for performance improvement in many of these classes.
 """
 
+from collections import namedtuple
 from copy import deepcopy
 from enum import Enum
 import re
@@ -29,7 +30,7 @@ from threading import Thread
 from scarab.entities import Entity
 from scarab.events import *
 from scarab.loggers import log
-from scarab.util import get_uuid
+from scarab.util import get_uuid, eprint
 
 
 class TimeEventQueue:
@@ -231,6 +232,10 @@ class PriorityEventQueue:
         return None
 
 
+# Defined a named tuple for interests by an entity.
+EntityInterestList = namedtuple("EntityInterestList", ["entity_name", "entities", "events"])
+
+
 class EventMediator:
     """
     Mediates the event interactions between entities.  Entities (or other objects) are registered with handlers for
@@ -257,25 +262,25 @@ class EventMediator:
         """
         interest = entity.get_event_interest()
 
-        self._add_entity_interest(entity=entity, entity_interest=interest.named_events,
-                                  simulation_interest=self._named_event_interest)
-        self._add_entity_interest(entity=entity, entity_interest=interest.entity_created_events,
-                                  simulation_interest=self._entity_created_interest)
-        self._add_entity_interest(entity=entity, entity_interest=interest.entity_changed_events,
-                                  simulation_interest=self._entity_changed_interest)
-        self._add_entity_interest(entity=entity, entity_interest=interest.entity_destroyed_events,
-                                  simulation_interest=self._entity_destroyed_interest)
+        self.__add_entity_interest(entity=entity, entity_interest=interest.named_events,
+                                   simulation_interest=self._named_event_interest)
+        self.__add_entity_interest(entity=entity, entity_interest=interest.entity_created_events,
+                                   simulation_interest=self._entity_created_interest)
+        self.__add_entity_interest(entity=entity, entity_interest=interest.entity_changed_events,
+                                   simulation_interest=self._entity_changed_interest)
+        self.__add_entity_interest(entity=entity, entity_interest=interest.entity_destroyed_events,
+                                   simulation_interest=self._entity_destroyed_interest)
         entity._simulation = self
 
     @staticmethod
-    def _add_entity_interest(entity, entity_interest, simulation_interest):
+    def __add_entity_interest(entity, entity_interest, simulation_interest):
         """
         Adds entities to the
         :param entity: The entity to add interest for.
         :type entity: Entity
         :param entity_interest: The list to check and add it to.
         :type entity_interest: list
-        :param
+        :param simulation_interest: The list of entity interest mappings in the simulation.
         :return: None
         """
         for name in entity_interest:
@@ -295,27 +300,54 @@ class EventMediator:
         """
         interest = entity.get_event_interest()
 
-        for event_name in interest.named_events:
-            entity_list = self._named_event_interest.get(event_name, None)
-            if entity_list:  # shouldn't happen, but just in case.
-                entity_list.remove(entity)
-
-        for entity_name in interest.entity_created_events:
-            entity_list = self._entity_created_interest.get(entity_name, None)
-            if entity_list:  # shouldn't happen, but just in case.
-                entity_list.remove(entity)
-
-        for entity_name in interest.entity_changed_events:
-            entity_list = self._entity_changed_interest.get(entity_name, None)
-            if entity_list:  # shouldn't happen, but just in case.
-                entity_list.remove(entity)
-
-        for entity_name in interest.entity_destroyed_events:
-            entity_list = self._entity_destroyed_interest.get(entity_name, None)
-            if entity_list:  # shouldn't happen, but just in case.
-                entity_list.remove(entity)
+        self.__deregister_entity(entity=entity, entity_interest=interest.named_events,
+                                 simulation_interest=self._named_event_interest)
+        self.__deregister_entity(entity=entity, entity_interest=interest.entity_created_events,
+                                 simulation_interest=self._entity_created_interest)
+        self.__deregister_entity(entity=entity, entity_interest=interest.entity_changed_events,
+                                 simulation_interest=self._entity_changed_interest)
+        self.__deregister_entity(entity=entity, entity_interest=interest.entity_destroyed_events,
+                                 simulation_interest=self._entity_destroyed_interest)
 
         entity._simulation = None
+
+    @staticmethod
+    def __deregister_entity(entity, entity_interest, simulation_interest):
+        """
+        Unregisters the entity from the given list.
+        :param entity: The entity to remove interest for.
+        :type entity: Entity
+        :param entity_interest: The list of entities the entity has interest for.
+        :type entity_interest: list of str
+        :param simulation_interest: The list of entity interest mappings in the simulation.
+        :type simulation_interest: dict
+        :return:
+        """
+        for entity_name in entity_interest:
+            try:
+                simulation_interest[entity_name].remove(entity)
+            except KeyError:
+                eprint(f"Missing mappings for {entity_name}.")
+
+    def get_interest_for_entity(self, entity):
+        """
+        Returns the list of entities and events that the entity has interest in.
+        :param entity: The entity to check for.
+        :return: A EntityInterestList tuple.
+        :rtype: EntityInterestList
+        """
+        entity_interest_list = set()
+        for entity_list in [self._entity_created_interest,
+                            self._entity_changed_interest,
+                            self._entity_destroyed_interest]:
+            for other_entity in entity_list:
+                entity_interest_list.add(other_entity)
+
+        event_interest_list = set()
+        for event_name in self._named_event_interest:
+            event_interest_list.add(event_name)
+
+        return EntityInterestList(entity_name=entity.name, entities=entity_interest_list, events=event_interest_list)
 
     def send_event(self, event):
         """
@@ -558,7 +590,7 @@ class Simulation(Thread):
         while self.state != SimulationState.shutting_down:
             # If the state is not running, then sleep for a second and see if that changes.
             if self.state != SimulationState.running:
-                time.sleep(1)
+                time.sleep(0.05)
             else:  # simulation is running, see if it should step.
                 if self.max_time > 0 and (self._previous_time >= self.max_time):
                     self.shutdown()
@@ -569,7 +601,7 @@ class Simulation(Thread):
                     self.step()
                     self.__steps_to_advance -= 1
                 else:  # no time to advance, so pause until time to advance.
-                    time.sleep(1)
+                    time.sleep(0.05)
 
     def shutdown(self):
         """
@@ -664,6 +696,42 @@ class Simulation(Thread):
         """
         assert isinstance(view, ViewInterface)
         self._views.append(view)
+
+    def check_interests_for_warnings(self):
+        """
+        Checks the interests that have been registered against the actual entities to look for gaps.  This check is
+        helpful for identifying errors in names in improve model validation.
+        :return: A list of possible issues.
+        :rtype: list of str
+        """
+        # TODO when specific interest, such as attribute detail interest, is added, add checks.
+        # For each type of interest, look at the names of the entities that there is interest for and then look to see
+        # if there are entities of that type.
+        entity_interest_lists = []
+
+        # get all of the interest, by entity.
+        for entity in self._entities.values():
+            entity_interest_lists.append(self._event_mediator.get_interest_for_entity(entity))
+
+        # For each entity, check the interest to see if the entity is known.  Currently doesn't check for events since
+        # they are not registered.
+        warnings = []
+        for entity_interest in entity_interest_lists:
+            for other_entity in entity_interest.entities:
+                if other_entity not in self._entities.keys():  # no known entity
+                    warnings.append(
+                        f"Entity {entity_interest.entity_name} has interest in unknown entity {other_entity}.")
+
+        return warnings
+
+    def print_interest_warnings(self):
+        """
+        Will check for interest warnings and print any that occur.
+        :return: None
+        """
+        warnings = self.check_interests_for_warnings()
+        for w in warnings:
+            print(f"WARNING: {w}")
 
     def step(self) -> None:
         """

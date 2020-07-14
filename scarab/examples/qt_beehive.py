@@ -136,7 +136,7 @@ class MainWindow(qtw.QWidget):
 
             with self.simulation as simulation:
                 self.simulation.register_view(
-                    view=ViewInterface(name="Beehive View", callback=self._handle_simulation_udpate))
+                    view=ViewInterface(name="Beehive View", callback=self._handle_simulation_update))
                 # Create the entities.
                 self.simulation.add_entity(BeehiveDisplayModel())
                 self.simulation.add_entity(OutsideTemperature(min_temp=outside_min_temp, max_temp=outside_max_temp))
@@ -146,7 +146,7 @@ class MainWindow(qtw.QWidget):
         except Exception as e:
             print(f"Error creating the simulation: {e}")
 
-    def _handle_simulation_udpate(self, previous_time, new_time):
+    def _handle_simulation_update(self, previous_time, new_time):
         """
         Handles the simulation updating.
         :param previous_time: The previous simulation time.

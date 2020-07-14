@@ -285,6 +285,15 @@ class TestSimulation(unittest.TestCase):
             sim.advance()
             self.assertEqual(SimulationState.running, sim.state)
 
+    def test_check_interest(self):
+        """Tests the setting of interests."""
+        with Simulation(name="test interest", hide_license=True) as sim:
+            sim.add_entity(TestEntityOne())
+            warnings = sim.check_interests_for_warnings()
+            self.assertEqual(1, len(warnings))
+            self.assertTrue("test.entity.two" in warnings[0])
+            sim.print_interest_warnings()
+
 
 class ViewInterfaceX(ViewInterface):
     """Class that implements the ViewInterface."""
