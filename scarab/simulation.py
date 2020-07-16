@@ -763,7 +763,7 @@ class Simulation(Thread):
 
         elapsed_time = time.time() - start_cycle_clock_time
         while elapsed_time < self.minimum_step_time:
-            time.sleep(1)
+            time.sleep(0.05)
             elapsed_time = time.time() - start_cycle_clock_time
 
     def _update_views(self, previous_time, new_time):

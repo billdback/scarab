@@ -20,17 +20,16 @@ and try to keep it in a given temperature range.
 It also includes the test code to show how entities can be verified.
 """
 import unittest
-from copy import deepcopy
 
-from scarab.simulation import RemoteEntity
 from scarab.examples.beehive import *
+from scarab.testing import EntityTestWrapper as etw
 
 
-class TestBeeEntity(unittest.TestCase):
+class TestBee(unittest.TestCase):
 
     def test_bee_creation(self):
         """Tests creating a bee with set values."""
-        bee = Bee(buzz_temp=32, fan_temp=100)
+        bee = etw(Bee(buzz_temp=32, fan_temp=100))
         self.assertEqual(32, bee.buzz_temp)
         self.assertEqual(100, bee.fan_temp)
         self.assertFalse(bee.is_buzzing)
@@ -38,35 +37,31 @@ class TestBeeEntity(unittest.TestCase):
 
     def test_bee_temp_change(self):
         """Tests temperature updates for the bee."""
-        bee = Bee(buzz_temp=32, fan_temp=100)
+        bee = etw(Bee(buzz_temp=32, fan_temp=100))
         self.assertEqual(32, bee.buzz_temp)
         self.assertEqual(100, bee.fan_temp)
 
         self.assertFalse(bee.is_fanning)
         self.assertFalse(bee.is_buzzing)
 
-        beehive = Beehive(start_temp=10, buzzing_impact=.25, fanning_impact=.25)
-        beehive.current_temp = 101
-        bee.handle_event(EntityChangedEvent(entity=beehive, changed_properties=["current_temp"]))
+        bee.send_entity_changed_event(entity_name=BEEHIVE_ENTITY_NAME, properties={"current_temp": 101})
         self.assertTrue(bee.is_fanning)
         self.assertFalse(bee.is_buzzing)
 
-        beehive.current_temp = 15
-        bee.handle_event(EntityChangedEvent(entity=beehive, changed_properties=["current_temp"]))
+        bee.send_entity_changed_event(entity_name=BEEHIVE_ENTITY_NAME, properties={"current_temp": 15})
         self.assertFalse(bee.is_fanning)
         self.assertTrue(bee.is_buzzing)
 
-        beehive.current_temp = 45
-        bee.handle_event(EntityChangedEvent(entity=beehive, changed_properties=["current_temp"]))
+        bee.send_entity_changed_event(entity_name=BEEHIVE_ENTITY_NAME, properties={"current_temp": 45})
         self.assertFalse(bee.is_fanning)
         self.assertFalse(bee.is_buzzing)
 
 
-class TestBeehiveEntity(unittest.TestCase):
+class TestBeehive(unittest.TestCase):
 
     def test_beehive_creation(self):
         """Tests creating a bee with set values."""
-        beehive = Beehive(start_temp=10, buzzing_impact=.25, fanning_impact=.25)
+        beehive = etw(Beehive(start_temp=10, buzzing_impact=.25, fanning_impact=.25))
         self.assertEqual(10, beehive.current_temp)
         self.assertEqual(.25, beehive.buzzing_impact)
         self.assertEqual(.25, beehive.fanning_impact)
@@ -76,103 +71,76 @@ class TestBeehiveEntity(unittest.TestCase):
 
     def test_adding_and_removing_bees(self):
         """Tests handling new bees."""
-        beehive = Beehive(start_temp=10, buzzing_impact=.25, fanning_impact=.25)
+        beehive = etw(Beehive(start_temp=10, buzzing_impact=.25, fanning_impact=.25))
 
-        # the fan and buzz temps don't matter since they are not used, but they are required.
-        bee1 = Bee(buzz_temp=25, fan_temp=50)
-        bee1.guid = "1"
-        bee2 = Bee(buzz_temp=25, fan_temp=50)
-        bee2.guid = "2"
-        bee3 = Bee(buzz_temp=25, fan_temp=50)
-        bee3.guid = "3"
-        bee4 = Bee(buzz_temp=25, fan_temp=50)
-        bee4.guid = "4"
-
-        bee1.is_buzzing = True
-        bee2.is_fanning = True
-        bee3.is_fanning = True
-
-        beehive.handle_new_bee(bee=bee1)
-        beehive.handle_new_bee(bee=bee2)
-        beehive.handle_new_bee(bee=bee3)
-        beehive.handle_new_bee(bee=bee4)
+        beehive.send_entity_created_event(entity_name=BEE_ENTITY_NAME,
+                                          properties={"guid": 1, "is_buzzing": True, "is_fanning": False})
+        beehive.send_entity_created_event(entity_name=BEE_ENTITY_NAME,
+                                          properties={"guid": 2, "is_buzzing": False, "is_fanning": True})
+        beehive.send_entity_created_event(entity_name=BEE_ENTITY_NAME,
+                                          properties={"guid": 3, "is_buzzing": False, "is_fanning": True})
+        beehive.send_entity_created_event(entity_name=BEE_ENTITY_NAME,
+                                          properties={"guid": 4, "is_buzzing": False, "is_fanning": False})
 
         self.assertEqual(1, beehive.number_bees_buzzing)
         self.assertEqual(2, beehive.number_bees_fanning)
 
-        beehive.handle_dead_bee(bee=bee1)
-        beehive.handle_dead_bee(bee=bee3)
+        beehive.send_entity_destroyed_event(entity_name=BEE_ENTITY_NAME, entity_guid=1)
+        beehive.send_entity_destroyed_event(entity_name=BEE_ENTITY_NAME, entity_guid=3)
 
         self.assertEqual(0, beehive.number_bees_buzzing)
         self.assertEqual(1, beehive.number_bees_fanning)
 
     def test_change_bees(self):
         """Tests handling changes in bees."""
-        bee = Bee(buzz_temp=25, fan_temp=50)
-        bee.guid = "1"
 
-        beehive = Beehive(start_temp=10, buzzing_impact=1, fanning_impact=1)
-        beehive.handle_new_bee(bee=bee)
+        beehive = etw(Beehive(start_temp=10, buzzing_impact=1, fanning_impact=1))
+        beehive.send_entity_created_event(entity_name=BEE_ENTITY_NAME,
+                                          properties={"guid": 1, "is_buzzing": False, "is_fanning": False})
 
         self.assertEqual(0, beehive.number_bees_buzzing)
         self.assertEqual(0, beehive.number_bees_fanning)
 
         # the following is needed for testing since the framework sends copies.
         # TODO create testing support to replicate simulation behavior.
-        bee = RemoteEntity(bee)
-        bee.is_buzzing = True
-        beehive.handle_bee_update(bee=bee, changed_properties=["is_buzzing"])
+        beehive.send_entity_changed_event(entity_name=BEE_ENTITY_NAME,
+                                          properties={"guid": 1, "is_buzzing": True, "is_fanning": False})
         self.assertEqual(1, beehive.number_bees_buzzing)
         self.assertEqual(0, beehive.number_bees_fanning)
 
-        bee = deepcopy(bee)
-        bee.is_fanning = True
-        bee.is_buzzing = False
-        beehive.handle_bee_update(bee=bee, changed_properties=["is_buzzing"])
+        beehive.send_entity_changed_event(entity_name=BEE_ENTITY_NAME,
+                                          properties={"guid": 1, "is_buzzing": False, "is_fanning": True})
         self.assertEqual(0, beehive.number_bees_buzzing)
         self.assertEqual(1, beehive.number_bees_fanning)
 
     def test_change_temp(self):
         """Tests changes in temperature."""
-        beehive = Beehive(start_temp=10, buzzing_impact=.5, fanning_impact=.25)
-
+        beehive = etw(Beehive(start_temp=10, buzzing_impact=.5, fanning_impact=.25))
         self.assertEqual(beehive._outside_temp, beehive.current_temp)
-        ot = OutsideTemperature()
-        ot.current_temp = 20
-        beehive.handle_event(EntityChangedEvent(entity=ot, changed_properties=["current_temp"]))
+
+        beehive.send_entity_changed_event(entity_name=OUTSIDE_TEMPERATURE_NAME, properties={"current_temp": 20})
         self.assertEqual(10, beehive.current_temp)
         self.assertEqual(20, beehive._outside_temp)
 
     def test_time_update(self):
         """Tests handling time updates."""
-        beehive = Beehive(start_temp=10, buzzing_impact=.5, fanning_impact=.25)
+        beehive = etw(Beehive(start_temp=10, buzzing_impact=.5, fanning_impact=.25))
 
         # the fan and buzz temps don't matter since they are not used, but they are required.
         # three buzzing and one flapping, so net of two buzzing (warm up).  3*0.5 - 1*0.25 = 1.5-0.25 =  1.25 change.
-        bee1 = Bee(buzz_temp=25, fan_temp=50)
-        bee1.guid = "1"
-        bee1.is_buzzing = True
-        beehive.handle_new_bee(bee1)
-
-        bee2 = Bee(buzz_temp=25, fan_temp=50)
-        bee2.guid = "2"
-        bee2.is_buzzing = True
-        beehive.handle_new_bee(bee2)
-
-        bee3 = Bee(buzz_temp=25, fan_temp=50)
-        bee3.guid = "3"
-        bee3.is_buzzing = True
-        beehive.handle_new_bee(bee3)
-
-        bee4 = Bee(buzz_temp=25, fan_temp=50)
-        bee4.guid = "4"
-        bee4.is_fanning = True
-        beehive.handle_new_bee(bee4)
+        beehive.send_entity_created_event(entity_name=BEE_ENTITY_NAME,
+                                          properties={"guid": 1, "is_buzzing": True, "is_fanning": False})
+        beehive.send_entity_created_event(entity_name=BEE_ENTITY_NAME,
+                                          properties={"guid": 2, "is_buzzing": True, "is_fanning": False})
+        beehive.send_entity_created_event(entity_name=BEE_ENTITY_NAME,
+                                          properties={"guid": 3, "is_buzzing": True, "is_fanning": False})
+        beehive.send_entity_created_event(entity_name=BEE_ENTITY_NAME,
+                                          properties={"guid": 4, "is_buzzing": False, "is_fanning": True})
 
         self.assertEqual(10, beehive.current_temp)
-        beehive.handle_time_update(previous_time=0, new_time=1)
+        beehive.send_new_time(new_time=1)
         self.assertEqual(11.25, beehive.current_temp)
-        beehive.handle_time_update(previous_time=0, new_time=1)
+        beehive.send_new_time(new_time=2)
         self.assertEqual(12.75, beehive.current_temp)
 
 
@@ -181,15 +149,19 @@ class TestOutsideTemp(unittest.TestCase):
 
     def test_temp_changes(self):
         """Tests changing temps during the day."""
-        ot = OutsideTemperature(min_temp=0, max_temp=720)  # one degree for each minute for easy testing.
+        ot = etw(OutsideTemperature(min_temp=0, max_temp=720))  # one degree for each minute for easy testing.
         self.assertEqual(0, ot.current_temp)
-        ot.handle_time_update(previous_time=719, new_time=720)
+
+        ot.send_new_time(new_time=720)
         self.assertEqual(720, ot.current_temp)
-        ot.handle_time_update(previous_time=1339, new_time=1440)
+
+        ot.send_new_time(new_time=1440)
         self.assertEqual(0, ot.current_temp)
-        ot.handle_time_update(previous_time=339, new_time=440)
+
+        ot.send_new_time(new_time=440)
         self.assertEqual(440, ot.current_temp)
-        ot.handle_time_update(previous_time=819, new_time=820)
+
+        ot.send_new_time(new_time=820)
         self.assertEqual(620, ot.current_temp)
 
 
@@ -198,32 +170,21 @@ class TestBeehiveDisplayModel(unittest.TestCase):
 
     def test_display(self):
         """Tests the display."""
-        display = BeehiveDisplayModel()
-        beehive = Beehive(start_temp=50, buzzing_impact=.5, fanning_impact=.5)
+        display = etw(BeehiveDisplayModel())
+        display.send_entity_created_event(entity_name=BEEHIVE_ENTITY_NAME, properties={"number_bees": 0})
+        # beehive = Beehive(start_temp=50, buzzing_impact=.5, fanning_impact=.5)
+        display.send_entity_created_event(entity_name=BEE_ENTITY_NAME,
+                                          properties={"guid": 1, "is_buzzing": True, "is_fanning": False})
+        display.send_entity_created_event(entity_name=BEE_ENTITY_NAME,
+                                          properties={"guid": 2, "is_buzzing": True, "is_fanning": False})
+        display.send_entity_created_event(entity_name=BEE_ENTITY_NAME,
+                                          properties={"guid": 3, "is_buzzing": True, "is_fanning": False})
+        display.send_entity_created_event(entity_name=BEE_ENTITY_NAME,
+                                          properties={"guid": 4, "is_buzzing": False, "is_fanning": True})
 
-        bee1 = Bee(buzz_temp=25, fan_temp=50)
-        bee1.guid = "1"
-        bee1.is_buzzing = True
-        beehive.handle_new_bee(bee1)
+        display.send_entity_changed_event(entity_name=BEEHIVE_ENTITY_NAME,
+                                          properties={"current_temp": 50, "number_bees": 4,
+                                                      "number_bees_fanning": 1, "number_bees_buzzing": 3})
+        display.send_entity_changed_event(entity_name=OUTSIDE_TEMPERATURE_NAME, properties={"current_temp": 55.0})
+        display.send_new_time(new_time=5)
 
-        bee2 = Bee(buzz_temp=25, fan_temp=50)
-        bee2.guid = "2"
-        bee2.is_buzzing = True
-        beehive.handle_new_bee(bee2)
-
-        bee3 = Bee(buzz_temp=25, fan_temp=50)
-        bee3.guid = "3"
-        bee3.is_buzzing = True
-        beehive.handle_new_bee(bee3)
-
-        bee4 = Bee(buzz_temp=25, fan_temp=50)
-        bee4.guid = "4"
-        bee4.is_fanning = True
-        beehive.handle_new_bee(bee4)
-
-        display.handle_beehive_changed(beehive=beehive, changed_properties=["current_temp"])
-
-        outside_temp = OutsideTemperature(min_temp=55.0, max_temp=75.5)
-        display.handle_temp_changed(temp=outside_temp, changed_properties=["current_temp"])
-
-        display.handle_time_update(previous_time=4, new_time=5)

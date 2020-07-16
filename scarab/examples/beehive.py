@@ -22,6 +22,11 @@ It also includes the test code to show how entities can be verified.
 
 from scarab.entities import *
 
+BEE_ENTITY_NAME = "bee"
+BEEHIVE_ENTITY_NAME = "beehive"
+OUTSIDE_TEMPERATURE_NAME = "outside_temperature"
+BEEHIVE_DISPLAY_MODEL_NAME = "beehive_display_model"
+
 
 class Bee(Entity):
     """Represents an individual bee in the hive."""
@@ -41,9 +46,9 @@ class Bee(Entity):
         self.fan_temp = fan_temp
         self.is_buzzing = False
         self.is_fanning = False
-        super().__init__(name="bee")
+        super().__init__(name=BEE_ENTITY_NAME)
 
-    @entity_changed_event_handler(entity_name="beehive")
+    @entity_changed_event_handler(entity_name=BEEHIVE_ENTITY_NAME)
     def handle_temperature_change(self, beehive, changed_properties):
         """
         Handles changes to the temperature in the hive.
@@ -88,7 +93,7 @@ class Beehive(Entity):
 
         self.__known_bees = {}  # keeps track of bees so we know their state.
 
-        super().__init__(name="beehive")
+        super().__init__(name=BEEHIVE_ENTITY_NAME)
 
     def get_number_bees_buzzing(self):
         """
@@ -106,7 +111,7 @@ class Beehive(Entity):
         """
         return sum([1 for b in self.__known_bees.values() if b.is_fanning])
 
-    @entity_changed_event_handler(entity_name="outside_temperature")
+    @entity_changed_event_handler(entity_name=OUTSIDE_TEMPERATURE_NAME)
     def handle_outside_temperature_update(self, outside_temperature, changed_properties):
         """
         Handles changes in the outside temperature.
@@ -146,7 +151,7 @@ class Beehive(Entity):
 
         self.current_temp = self.current_temp + outside_temp_impact + total_bee_impact
 
-    @entity_created_event_handler(entity_name="bee")
+    @entity_created_event_handler(entity_name=BEE_ENTITY_NAME)
     def handle_new_bee(self, bee):
         """
         Handle a new bee being created.
@@ -162,7 +167,7 @@ class Beehive(Entity):
         if bee.is_buzzing:
             self.number_bees_buzzing += 1
 
-    @entity_destroyed_event_handler(entity_name="bee")
+    @entity_destroyed_event_handler(entity_name=BEE_ENTITY_NAME)
     def handle_dead_bee(self, bee):
         """
         Handle a new bee being destroyed.
@@ -171,14 +176,14 @@ class Beehive(Entity):
         :return: None
         """
         self.number_bees -= 1
-        self.__known_bees.pop(bee.guid)
+        bee = self.__known_bees.pop(bee.guid)
 
         if bee.is_fanning:
             self.number_bees_fanning -= 1
         if bee.is_buzzing:
             self.number_bees_buzzing -= 1
 
-    @entity_changed_event_handler(entity_name="bee")
+    @entity_changed_event_handler(entity_name=BEE_ENTITY_NAME)
     def handle_bee_update(self, bee, changed_properties):
         """
         Handles bees changing.
@@ -232,7 +237,7 @@ class OutsideTemperature(Entity):
 
         self.current_temp = self.__minute_temps[0]
 
-        super().__init__(name="outside_temperature")
+        super().__init__(name=OUTSIDE_TEMPERATURE_NAME)
 
     @time_update_event_handler
     def handle_time_update(self, previous_time, new_time):
@@ -253,7 +258,7 @@ class BeehiveDisplayModel(Entity):
         """
         Creates a new beehive display model.
         """
-        super().__init__(name="behive_display_model")
+        super().__init__(name=BEEHIVE_DISPLAY_MODEL_NAME)
 
         self.beehive = None
         self.outside_temp = None
@@ -273,7 +278,7 @@ class BeehiveDisplayModel(Entity):
         self.previous_time = -1
         self.new_time = 0
 
-    @entity_changed_event_handler(entity_name="beehive")
+    @entity_changed_event_handler(entity_name=BEEHIVE_ENTITY_NAME)
     def handle_beehive_changed(self, beehive, changed_properties):
         """Handles the beehive changing.
         :param beehive: The beehive that changed.
@@ -294,7 +299,7 @@ class BeehiveDisplayModel(Entity):
         self.min_number_bees_buzzing = min(self.min_number_bees_buzzing, beehive.number_bees_buzzing)
         self.max_number_bees_buzzing = max(self.max_number_bees_buzzing, beehive.number_bees_buzzing)
 
-    @entity_changed_event_handler(entity_name="outside_temperature")
+    @entity_changed_event_handler(entity_name=OUTSIDE_TEMPERATURE_NAME)
     def handle_temp_changed(self, temp, changed_properties):
         """Handles the outside temp changing.
         :param temp: The temperature entity that changed.

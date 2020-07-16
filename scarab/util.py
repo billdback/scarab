@@ -14,8 +14,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-This module contains base classes for Events and Commands as well as common Events and Commands used in the framework.
-
 This module contains utility functions and classes for creating simulations.
 """
 
