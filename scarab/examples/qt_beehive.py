@@ -59,7 +59,7 @@ class BeehiveDisplayModel(Entity):
         self.max_number_bees_fanning = 0
 
     @entity_created_event_handler(entity_name="beehive")
-    def handle_beehive_changed(self, beehive):
+    def handle_beehive_changed(self, beehive) -> None:
         """
         Handles the beehive changing.
         :param RemoteEntity beehive: The beehive that changed.
@@ -67,7 +67,7 @@ class BeehiveDisplayModel(Entity):
         self._beehive = beehive
 
     @entity_changed_event_handler(entity_name="beehive")
-    def handle_beehive_changed(self, beehive, changed_properties):
+    def handle_beehive_changed(self, beehive, changed_properties) -> None:
         """
         Handles the beehive changing.
         :param RemoteEntity beehive: The beehive that changed.
@@ -87,7 +87,7 @@ class BeehiveDisplayModel(Entity):
         self.max_number_bees_buzzing = max(self.max_number_bees_buzzing, self._beehive.number_bees_buzzing)
 
     @entity_changed_event_handler(entity_name="outside_temperature")
-    def handle_temp_changed(self, temp, changed_properties):
+    def handle_temp_changed(self, temp, changed_properties) -> None:
         """
         Handles the outside temp changing.
         :param RemoteEntity temp: The temperature entity that changed.
@@ -118,7 +118,7 @@ class MainWindow(qtw.QWidget):
 
         self.show()
 
-    def _create_simulation(self):
+    def _create_simulation(self) -> None:
         """Creates the simulation based on the settings."""
 
         # Get the settings and make sure they are valid.
@@ -144,7 +144,7 @@ class MainWindow(qtw.QWidget):
         except Exception as e:
             print(f"Error creating the simulation: {e}")
 
-    def _handle_simulation_update(self, previous_time, new_time):
+    def _handle_simulation_update(self, previous_time, new_time) -> None:
         """
         Handles the simulation updating.
         :param int previous_time: The previous simulation time.
@@ -155,7 +155,7 @@ class MainWindow(qtw.QWidget):
         if new_time % 100 == 0:
             self.temp_chart.setText(f"Advancing time to {new_time}")
 
-    def _create_widgets(self):
+    def _create_widgets(self) -> None:
         """Create the widgets that will be used in the UI."""
 
         # Outside temperature options.
@@ -195,7 +195,7 @@ class MainWindow(qtw.QWidget):
         self.temp_chart = qtw.QTextEdit()
         self.bee_chart = qtw.QTextEdit()
 
-    def _layout_widgets(self):
+    def _layout_widgets(self) -> None:
         """Creates the layouts and lays out widgets."""
         # Main layout is horizontal with two columns.
         main_layout = qtw.QHBoxLayout()
@@ -269,7 +269,7 @@ class MainWindow(qtw.QWidget):
         bee_chart_form.setLayout(bee_chart_form_layout)
         bee_chart_form_layout.addWidget(self.bee_chart)
 
-    def _setup_actions(self):
+    def _setup_actions(self) -> None:
         """
         Sets up the widget actions.  Only the buttons actually have actions.
         """
@@ -277,7 +277,7 @@ class MainWindow(qtw.QWidget):
         self.exit_button.clicked.connect(self.exit_button_clicked)
 
     @qtc.pyqtSlot()
-    def start_pause_button_clicked(self):
+    def start_pause_button_clicked(self) -> None:
         """Handles clicks to the start/pause button."""
         button_text = self.start_pause_button.text()
         if button_text == "Start":
@@ -297,7 +297,7 @@ class MainWindow(qtw.QWidget):
             print("Unknown state - not doing anything.")
 
     @qtc.pyqtSlot()
-    def exit_button_clicked(self):
+    def exit_button_clicked(self) -> None:
         print("Exiting")
         self.simulation.shutdown()
         self.close()

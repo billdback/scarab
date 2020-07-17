@@ -64,7 +64,7 @@ class EntityTestWrapper:
         """
         Sets the attribute on the wrapped entity.
         :param str key: The key for the attribute to return.
-        :return: Any
+        :return: The value for the attribute
         """
         if key in EntityTestWrapper.__dict__:
             return EntityTestWrapper.__dict__[key].__get__(self)
@@ -75,7 +75,6 @@ class EntityTestWrapper:
         """
         Sends a generic event to the entity.
         :param Event event: The event to send.
-        :return: None
         """
         self.__mediator.send_event(event=event)
 

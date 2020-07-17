@@ -24,8 +24,9 @@ from copy import deepcopy
 from enum import Enum
 import re
 import sys
-import time
 from threading import Thread
+import time
+from typing import Union, List
 
 from scarab.entities import Entity
 from scarab.events import *
@@ -49,11 +50,10 @@ class TimeEventQueue:
         self._current_event_list = None  # list currently getting events from.
         self._current_time = 0  # The time for current events.  Others must be in the future.
 
-    def add(self, event):
+    def add(self, event) -> None:
         """
         Adds a new event in the proper location based on simulation time to send.
         :param Event event: The event to add to the queue.
-        :return: Nothing
         """
         assert event
 
@@ -68,11 +68,10 @@ class TimeEventQueue:
             self._event_lists[event.sim_time] = []
         self._event_lists[event.sim_time].append(event)
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Returns the number of events in the queue.
         :return: The number of events in the queue.
-        :rtype: int
         """
         the_len = 0
         for v in self._event_lists.values():
@@ -80,15 +79,14 @@ class TimeEventQueue:
 
         return the_len
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         """
         Returns true if there are no events in the queue.
         :return: True if there are no events in the queue.
-        :rtype: bool
         """
         return len(self._event_lists.keys()) == 0 and not self._current_event_list
 
-    def next_time(self):
+    def next_time(self) -> Union[int, None]:
         """
         Returns the next time if no more events were to be called.  I.e. the time of the next event.
         :return: The time of the next event in the queue or None if the list is empty.
@@ -100,22 +98,21 @@ class TimeEventQueue:
 
         return sorted(self._event_lists.keys())[0]
 
-    def advance(self, increment=1):
+    def advance(self, increment=1) -> int:
         """
         Advances the time to increase the minimum time.
         :param int increment: The increment to advance by (must be >= 1)
         :return: The new current time.
-        :rtype: int
         """
         assert increment > 0, f"Expected positive increment, but got {increment}"
 
         self._current_time += increment
         return self._current_time
 
-    def next(self):
+    def next(self) -> Union[Event, None]:
         """
         Returns the next event in the queue.
-        :return:
+        :return: The next event in the queue.
         """
         if self.is_empty():
             return None
@@ -149,30 +146,27 @@ class PriorityEventQueue:
         for p in self._priorities:
             self._queues[p] = TimeEventQueue()
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Returns the total number of events in the list.
         :return:the total number of events in the list.
-        :rtype: int
         """
         the_len = 0
         for teq in self._queues.values():
             the_len += len(teq)
         return the_len
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         """
         Returns True if the queue is empty.
         :return: True if the queue is empty.
-        :rtype: bool
         """
         return len(self) == 0
 
-    def next_time(self):
+    def next_time(self) -> Union[int, None]:
         """
         Returns the time of the next event across all queues.  This is the minimum.
         :return: The time of the next event or None.
-        :rtype: int | None
         """
         next_time = None
         for qv in self._queues.values():
@@ -184,11 +178,10 @@ class PriorityEventQueue:
 
         return next_time
 
-    def add(self, event):
+    def add(self, event) -> None:
         """
         Adds an event to the queue based on priority and time.
         :param event: The event to add to the queue.
-        :return: Nothing
         """
         for p in self._priorities:
             if p.fullmatch(event.name):
@@ -196,12 +189,11 @@ class PriorityEventQueue:
                 q.add(event)
                 break
 
-    def advance(self, increment=1):
+    def advance(self, increment=1) -> int:
         """
         Advances the time to increase the minimum time.
         :param int increment: The increment to advance by (must be >= 1)
         :return: The new current time.
-        :rtype: int
         """
         assert increment > 0, f"Expected positive increment, but got {increment}"
 
@@ -212,11 +204,10 @@ class PriorityEventQueue:
 
         return min_time
 
-    def next(self):
+    def next(self) -> Union[Event, None]:
         """
         Returns the next event in the queue.
         :return: The next event in the queue or None if no events left.
-        :rtype: Event | None
         """
         # first, make sure the current time and next time are set based on the queues.
         next_time = self.next_time()
@@ -249,11 +240,10 @@ class EventMediator:
         self._entity_changed_interest = {}
         self._entity_destroyed_interest = {}
 
-    def register_entity(self, entity):
+    def register_entity(self, entity) -> None:
         """
         Adds an entity to receive future events.
         :param Entity entity: The entity interested.
-        :return: None
         """
         interest = entity.get_event_interest()
 
@@ -268,13 +258,12 @@ class EventMediator:
         entity._simulation = self
 
     @staticmethod
-    def __add_entity_interest(entity, entity_interest, simulation_interest):
+    def __add_entity_interest(entity, entity_interest, simulation_interest) -> None:
         """
         Adds entities to the
         :param Entity entity: The entity to add interest for.
         :param list entity_interest: The list to check and add it to.
         :param simulation_interest: The list of entity interest mappings in the simulation.
-        :return: None
         """
         for name in entity_interest:
             entity_list = simulation_interest.get(name, None)
@@ -283,12 +272,11 @@ class EventMediator:
                 simulation_interest[name] = entity_list
             entity_list.append(entity)
 
-    def deregister_entity(self, entity):
+    def deregister_entity(self, entity) -> None:
         """
         Removes all of the registrations for a given entity.
         TODO Create a faster way to do this.
         :param Entity entity: The entity to remove.
-        :return: None
         """
         interest = entity.get_event_interest()
 
@@ -304,13 +292,12 @@ class EventMediator:
         entity._simulation = None
 
     @staticmethod
-    def __deregister_entity(entity, entity_interest, simulation_interest):
+    def __deregister_entity(entity, entity_interest, simulation_interest) -> None:
         """
         Unregisters the entity from the given list.
         :param Entity entity: The entity to remove interest for.
         :param list of str entity_interest: The list of entities the entity has interest for.
         :param dict simulation_interest: The list of entity interest mappings in the simulation.
-        :return:
         """
         for entity_name in entity_interest:
             try:
@@ -318,12 +305,11 @@ class EventMediator:
             except KeyError:
                 eprint(f"Missing mappings for {entity_name}.")
 
-    def get_interest_for_entity(self, entity):
+    def get_interest_for_entity(self, entity) -> EntityInterestList:
         """
         Returns the list of entities and events that the entity has interest in.
         :param entity: The entity to check for.
         :return: A EntityInterestList tuple.
-        :rtype: EntityInterestList
         """
         entity_interest_list = set()
         for entity_list in [self._entity_created_interest,
@@ -338,11 +324,10 @@ class EventMediator:
 
         return EntityInterestList(entity_name=entity.name, entities=entity_interest_list, events=event_interest_list)
 
-    def send_event(self, event):
+    def send_event(self, event) -> None:
         """
         Handles the event by sending to all of the entities that registered it.
         :param Event event:  The event to handle.
-        :return: None
         """
         if event.name == ENTITY_CREATED_EVENT:
             entity_list = self._entity_created_interest.get(event.entity.name, None)
@@ -373,14 +358,13 @@ class EntityState:
         self.__entity_guid = entity.guid  # used to make sure changes are for the same entity.
         self.__state = self.__get_state_from_entity(entity=entity)
 
-    def compare_and_update(self, entity):
+    def compare_and_update(self, entity) -> dict:
         """
         Compares state to an entity, update state to the new state, and returns a dictionary of the changes.
         This code handles scenarios where properties are added or removed.  It's not envisioned that this will be
         a common scenario.
         :param Entity entity:  The entity being compared to.
         :return: A dictionary of the changes.
-        :rtype: dict
         """
         assert (entity.guid == self.__entity_guid)
         new_state = self.__get_state_from_entity(entity=entity)
@@ -408,12 +392,11 @@ class EntityState:
         return differences
 
     @staticmethod
-    def __get_state_from_entity(entity):
+    def __get_state_from_entity(entity) -> dict:
         """
         Returns the state from an entity.
         :param Entity entity:  The entity to get state from.
         :return: A dictionary of the changes.
-        :rtype: dict
         """
         state = {}
         for prop in entity.__dict__:
@@ -523,7 +506,7 @@ class Simulation(Thread):
 
         super().__init__(name=name)
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Make sure the simulation shuts down."""
         if self.state != SimulationState.shutting_down:
             self.shutdown()
@@ -532,7 +515,6 @@ class Simulation(Thread):
         """
         Provides support for with statement.
         :returns: The simulation object.
-        :rtype: Simulation
         """
         self.start()
         while self.state == SimulationState.not_started:
@@ -541,20 +523,18 @@ class Simulation(Thread):
 
         return self
 
-    def __exit__(self, exception_class, exception_value, exception_traceback):
+    def __exit__(self, exception_class, exception_value, exception_traceback) -> None:
         """
         Cleans up after the end of the with block.
         :param exception_class: The exception class or None
         :param exception_value: The value from the exception.
         :param exception_traceback: The exception traceback.
-        :returns: None
         """
         self.shutdown()
 
     def run(self) -> None:
         """
         Causes the simulation thread to run.  This could be called from Simulation.start().
-        :returns: None
         """
         # Make sure this doesn't get called if the simulation is shutting down.
         if self.state == SimulationState.shutting_down:
@@ -582,7 +562,7 @@ class Simulation(Thread):
                 else:  # no time to advance, so pause until time to advance.
                     time.sleep(0.05)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """
         Shuts down the simulation.
         """
@@ -590,50 +570,47 @@ class Simulation(Thread):
         self.__send_event(SimulationShutdownEvent())
         self.state = SimulationState.shutting_down
 
-    def print_license(self):
+    def print_license(self) -> None:
         """
         Prints the license for Scarab.
         """
         for line in self.license:
             print(line)
 
-    def number_entities(self):
+    def number_entities(self) -> int:
         """
         Returns the number of entities currently in the simulation.
         :return: The number of entities currently in the simulation.
-        :rtype: int
         """
         return len(self._entities)
 
-    def number_queued_events(self):
+    def number_queued_events(self) -> int:
         """
         Return the number of queued events.
         :return: The number of queued events.
         """
         return len(self._event_queue)
 
-    def next_time(self):
+    def next_time(self) -> int:
         """
         Returns the next simulation time.  This can change as events get added.
         :return: The next simulation time.
         """
         return self._event_queue.next_time()
 
-    def queue_event(self, event):
+    def queue_event(self, event) -> None:
         """
         Queues an event for sending.
         :param Event event: An event to send.
-        :return: Nothing
         """
         if not event.sim_time or event.sim_time <= self._previous_time:
             event.sim_time = self._previous_time + 1  # always add in the future.
         self._event_queue.add(event=event)
 
-    def add_entity(self, entity):
+    def add_entity(self, entity) -> None:
         """
         Adds a new entity to the simulation.  Note that this is not thread safe.
         :param Entity entity: The entity to add.
-        :return: Nothing
         """
         # Add the entity to the list along with the handlers and then generate an entity created event.
 
@@ -648,12 +625,11 @@ class Simulation(Thread):
 
         self._previous_state[entity.guid] = EntityState(entity=entity)
 
-    def remove_entity(self, entity):
+    def remove_entity(self, entity) -> None:
         """
         Removes and entity from the simulation and informs other entities.  Note that any entities
         holding a reference to this entity should remove the entity.
         :param Entity entity: The entity to remove.
-        :return: None
         """
         log(ENTITY_LOGGING, f"Removing entity type {entity.name} with GUID {entity.guid}")
 
@@ -663,21 +639,19 @@ class Simulation(Thread):
 
         self.__send_event(EntityDestroyedEvent(entity=RemoteEntity(entity)))
 
-    def register_view(self, view):
+    def register_view(self, view) -> None:
         """
         Adds a new view to be called on time updates.
         :param ViewInterface view: The view interface to call.
-        :return: None
         """
         assert isinstance(view, ViewInterface)
         self._views.append(view)
 
-    def check_interests_for_warnings(self):
+    def check_interests_for_warnings(self) -> List[str]:
         """
         Checks the interests that have been registered against the actual entities to look for gaps.  This check is
         helpful for identifying errors in names in improve model validation.
         :return: A list of possible issues.
-        :rtype: list of str
         """
         # TODO when specific interest, such as attribute detail interest, is added, add checks.
         # For each type of interest, look at the names of the entities that there is interest for and then look to see
@@ -699,10 +673,9 @@ class Simulation(Thread):
 
         return warnings
 
-    def print_interest_warnings(self):
+    def print_interest_warnings(self) -> None:
         """
         Will check for interest warnings and print any that occur.
-        :return: None
         """
         warnings = self.check_interests_for_warnings()
         for w in warnings:
@@ -741,21 +714,19 @@ class Simulation(Thread):
             time.sleep(0.05)
             elapsed_time = time.time() - start_cycle_clock_time
 
-    def _update_views(self, previous_time, new_time):
+    def _update_views(self, previous_time, new_time) -> None:
         """
         Updates the views that have been registered with the simulation.  Only happens on time updates.
         :param int previous_time: The previous time the simulation is advancing from.
         :param int new_time: The new time the simulation is advancing to.
-        :return: None
         """
         for view in self._views:
             view.update_view(previous_time=previous_time, new_time=new_time)
 
-    def advance(self, steps=ADVANCE_UNLIMITED):
+    def advance(self, steps=ADVANCE_UNLIMITED) -> None:
         """
         Manually advances time by the number of steps specified.
         :param int steps: The number of steps to advance by.  If not specified runs unlimited.
-        :return: Nothing
         """
         assert steps > 0 or steps == Simulation.ADVANCE_UNLIMITED
 
@@ -768,13 +739,12 @@ class Simulation(Thread):
         self.state = SimulationState.running
         print(f"simulation state is {self.state}")
 
-    def advance_and_wait(self, steps=1):
+    def advance_and_wait(self, steps=1) -> None:
         """
         Manually advances time by the number of steps specified (default of one), waiting while the sim advances.
         Note that this is mostly to make the simulation synchronous for testing.
         TODO - have an alternate approach with callbacks to make this thread safe and more flexible.
         :param int steps: The number of steps to advance by.  Must be positive.  Default is 1.
-        :return: Nothing
         """
         assert steps > 0
 
@@ -786,7 +756,7 @@ class Simulation(Thread):
             # possible race condition.  It's possible that this returns before the last cycle is complete.
             time.sleep(1)
 
-    def pause(self):
+    def pause(self) -> None:
         """
         Pauses the simulation if it's running.
         """
@@ -794,10 +764,9 @@ class Simulation(Thread):
         self.state = SimulationState.paused
         log(SIMULATION_LOGGING, f"Pausing the simulation.")
 
-    def __send_change_events(self):
+    def __send_change_events(self) -> None:
         """
         Go through all the entities and send out change events.
-        :return:  None
         """
         # All entities should be in the state list since it is added when the entity is added.
         for entity in self._entities.values():
@@ -806,11 +775,10 @@ class Simulation(Thread):
                 evt = EntityChangedEvent(entity=RemoteEntity(entity), changed_properties=diffs)
                 self.__send_event(evt)  # Send out notification at the end of the cycle, so other entities can update.
 
-    def __send_event(self, event):
+    def __send_event(self, event) -> None:
         """
         Sends the given event to interested entities.
         :param event: The event to send.
-        :return: Nothing
         """
         log(EVENT_LOGGING, f"sending event {event.name} at sim time {event.sim_time}: {event}")
         event.sim_time = self._current_time
@@ -836,15 +804,15 @@ class ViewInterface(Entity):
         if callback:
             self.add_callback(callback)
 
-    def add_callback(self, callback):
+    def add_callback(self, callback) -> None:
         """
         Adds a callback.  Currently only time updates are supported.
-        #TODO add the ability to add callbacks on specific events.
+        TODO add the ability to add callbacks on specific events.
         """
         assert callback
         self._callbacks.append(callback)
 
-    def update_view(self, previous_time, new_time):
+    def update_view(self, previous_time, new_time) -> None:
         """
         Called when the time gets updated.
         :param int previous_time: The previous simulation time.

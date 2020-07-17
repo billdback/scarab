@@ -19,6 +19,7 @@ This modules contains I/O classes for reading and writing simulations (including
 
 from copy import copy
 import re
+from typing import List, Union
 import yaml
 
 from scarab.util import ind
@@ -87,27 +88,24 @@ class SimulationRepr:
         self.events = {}  # event.class_name: EventRepr
         self.entities = {}  # entity.class_name: EntityRepr
 
-    def add_event(self, event):
+    def add_event(self, event) -> None:
         """
         Adds an event to the simulation.  Overwrites if there is an event with the given class name already.
         :param EventRepr event: The event to add.
-        :return: None
         """
         self.events[event.class_name] = copy(event)
 
-    def add_entity(self, entity):
+    def add_entity(self, entity) -> None:
         """
         Adds an entity to the simulation.  Overwrites if there is an event with the given class name already.
         :param EntityRepr entity: The event to add.
-        :return: None
         """
         self.entities[entity.class_name] = copy(entity)
 
-    def check_for_issues(self):
+    def check_for_issues(self) -> List[str]:
         """
         Looks for any issues that exist in the representation, e.g. bad name, unknown references, etc.
         :return: List of any issues found.
-        :rtype: list of str
         """
         issues = list()
         issues.extend(self._check_simulation_for_issues())
@@ -115,11 +113,10 @@ class SimulationRepr:
         issues.extend(self._check_events_for_issues())
         return issues
 
-    def _check_simulation_for_issues(self):
+    def _check_simulation_for_issues(self) -> List[str]:
         """
         Looks for issues at the simulation level.
         :return: List of any issues found.
-        :rtype: list of str
         """
         issues = list()
         if not self.name:  # might want to check for spaces, etc. since this is the file name.
@@ -127,11 +124,10 @@ class SimulationRepr:
 
         return issues
 
-    def _check_entities_for_issues(self):
+    def _check_entities_for_issues(self) -> List[str]:
         """
         Looks for issues at the entity level.
         :return: List of any issues found.
-        :rtype: list of str
         """
         # TODO check the entities.
         issues = list()
@@ -160,12 +156,11 @@ class SimulationRepr:
 
         return issues
 
-    def _get_entity_with_name(self, entity_name):
+    def _get_entity_with_name(self, entity_name) -> Union[EntityRepr, None]:
         """
         Returns the entity with the given name.  This is O(n), so might be open to speeding up.
         :param str entity_name: Name of the entity to find.
         :returns: The entity of the given name or None.
-        :rtype: EntityRepr | None
         """
         assert entity_name
         for entity in self.entities.values():
@@ -173,11 +168,10 @@ class SimulationRepr:
                 return entity
         return None
 
-    def _check_events_for_issues(self):
+    def _check_events_for_issues(self) -> List[str]:
         """
         Looks for issues at the event level.
         :return: List of any issues found.
-        :rtype: list of str
         """
         issues = list()
 
@@ -195,14 +189,13 @@ class SimulationRepr:
         return issues
 
     @staticmethod
-    def __valid_class_name(name):
+    def __valid_class_name(name) -> bool:
         """
         Checks to see if the name is a "valid" class name in Python.  The convention is camel case.  The first
         letter is checked to make sure it's alpha and capital.  Other than that, check for whitespace, undersocres, and
         dashes.
         :param str name: The name to check.
         :returns: True if it looks like it's probably a valid name.
-        :rtype: bool
         """
         if not re.match(r"^[A-Z]", name):
             return False
@@ -225,26 +218,26 @@ class SimulationYAMLReader:
         """
         self.yaml = None
 
-    def read_yaml_from_file(self, yaml_file):
+    def read_yaml_from_file(self, yaml_file) -> SimulationRepr:
         """
         Reads a YAML description from a string.
         :param str yaml_file: The file to read from.
-        :return: SimulationRepr
+        :return: The simulation representation.
         """
         with open(yaml_file, "r") as yf:
             self.yaml = yaml.full_load(yf)
         return self._parse_yaml()
 
-    def read_yaml_from_str(self, yaml_str):
+    def read_yaml_from_str(self, yaml_str) -> SimulationRepr:
         """
         Reads a YAML description from a string.
         :param str yaml_str: The string containing the YAML.
-        :return: SimulationRepr
+        :return: The simulation representation.
         """
         self.yaml = yaml.full_load(yaml_str)
         return self._parse_yaml()
 
-    def _parse_yaml(self):
+    def _parse_yaml(self) -> SimulationRepr:
         """
         Parses the YAML into a
         :return: A simulation representation.
@@ -307,7 +300,7 @@ class SimulationWriter:
         pass
 
     @staticmethod
-    def write_simulation_module(simulation_repr, filename=None):
+    def write_simulation_module(simulation_repr, filename=None) -> None:
         """
         Writes the simulation representation to an actual simulation in a single module.
         :param SimulationRepr simulation_repr: The representation of the simulation to write.
@@ -325,7 +318,7 @@ class SimulationWriter:
             SimulationWriter.__write_main(outfile=outfile, simulation_repr=simulation_repr)
 
     @staticmethod
-    def __write_header(outfile, simulation_repr):
+    def __write_header(outfile, simulation_repr) -> None:
         """
         Writes the header of the file.
         :param file outfile: The file stream to write to.
@@ -348,7 +341,7 @@ StdOutLogger(topics=SIMULATION_LOGGING)
 """)
 
     @staticmethod
-    def __write_events(outfile, simulation_repr):
+    def __write_events(outfile, simulation_repr) -> None:
         """
         Writes the event classes to the file.
         :param file outfile: The file stream to write to.
@@ -379,7 +372,7 @@ StdOutLogger(topics=SIMULATION_LOGGING)
             outfile.write("\n")
 
     @staticmethod
-    def __write_entities(outfile, simulation_repr):
+    def __write_entities(outfile, simulation_repr) -> None:
         """
         Writes the entity classes to the file.
         :param file outfile: The file stream to write to.
@@ -414,34 +407,32 @@ StdOutLogger(topics=SIMULATION_LOGGING)
             # Add the event handlers.
             for event_name in entity_repr.event_handlers:
                 outfile.write(ind(1) + f'@event_handler(event_name="{event_name}")\n')
-                outfile.write(ind(1) + f'def handle_{SimulationWriter.__clean_name(event_name)}_event(self, event):\n')
+                outfile.write(ind(1) +
+                              f'def handle_{SimulationWriter.__clean_name(event_name)}_event(self, event) -> None:\n')
                 outfile.write(ind(2) + f'"""\n')
                 outfile.write(ind(2) + f'Handles a {event_name} event.\n')
                 outfile.write(ind(2) + f':param Event event: {event_name} event.\n')
-                outfile.write(ind(2) + f':returns: None\n')
                 outfile.write(ind(2) + f'"""\n')
                 outfile.write(ind(2) + f'pass\n')
                 outfile.write('\n')
 
             if entity_repr.time_update_handler:
                 outfile.write(ind(1) + f'@time_update_event_handler\n')
-                outfile.write(ind(1) + f'def handle_time_event(self, previous_time, new_time):\n')
+                outfile.write(ind(1) + f'def handle_time_event(self, previous_time, new_time) -> None:\n')
                 outfile.write(ind(2) + f'"""\n')
                 outfile.write(ind(2) + f'Handles a time change.\n')
                 outfile.write(ind(2) + f':param int previous_time: The previous simulation time.\n')
                 outfile.write(ind(2) + f':param int new_time: The new simulation time.\n')
-                outfile.write(ind(2) + f':returns: None\n')
                 outfile.write(ind(2) + f'"""\n')
                 outfile.write(ind(2) + f'pass\n')
                 outfile.write('\n')
 
             if entity_repr.simulation_shutdown_handler:
                 outfile.write(ind(1) + f'@simulation_shutdown_handler\n')
-                outfile.write(ind(1) + f'def handle_simulation_shutdown(self, shutdown_event):\n')
+                outfile.write(ind(1) + f'def handle_simulation_shutdown(self, shutdown_event) -> None:\n')
                 outfile.write(ind(2) + f'"""\n')
                 outfile.write(ind(2) + f'Handles any activities related to shutting down of the simulation.\n')
                 outfile.write(ind(2) + f':param Event shutdown_event: The shutdown event.\n')
-                outfile.write(ind(2) + f':returns: None\n')
                 outfile.write(ind(2) + f'"""\n')
                 outfile.write(ind(2) + f'pass\n')
                 outfile.write('\n')
@@ -484,12 +475,11 @@ StdOutLogger(topics=SIMULATION_LOGGING)
                         outfile.write('\n')
 
     @staticmethod
-    def __clean_name(name):
+    def __clean_name(name) -> str:
         """
         Cleans a name so it can be used as a variable.
         :param str name: The name to clean.
         :returns: The clean name that can be used.
-        :rtype: str
         """
         new_name = \
             name.replace(" ", "")\
@@ -497,7 +487,7 @@ StdOutLogger(topics=SIMULATION_LOGGING)
         return new_name
 
     @staticmethod
-    def __write_main(outfile, simulation_repr):
+    def __write_main(outfile, simulation_repr) -> None:
         """
         Writes the stub for the main section.
         :param file outfile: The file stream to write to.

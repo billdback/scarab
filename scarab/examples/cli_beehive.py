@@ -77,11 +77,10 @@ class BeehiveApp:
                 self.update_display()
 
     @staticmethod
-    def get_args():
+    def get_args() -> argparse.Namespace:
         """
         Returns command line arguments.
         :return: The command line arguments for the simulation run.
-        :rtype: argparse.Namespace
         """
         parser = argparse.ArgumentParser(description="Beehive simulation where bees respond to varying temperatures "
                                          "during the day to keep the hive in a particular range.  The goal of this "

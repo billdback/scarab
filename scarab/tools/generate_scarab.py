@@ -39,11 +39,10 @@ def main():
         SimulationWriter().write_simulation_module(simulation_repr=sim_repr, filename=args.sim_file)
 
 
-def get_args():
+def get_args() -> argparse.Namespace:
     """
     Returns command line arguments.
     :return: The command line arguments for the simulation run.
-    :rtype: argparse.Namespace
     """
     parser = argparse.ArgumentParser(description="Generates Scarab simulation files from YAML.")
 
@@ -54,12 +53,11 @@ def get_args():
     return parser.parse_args()
 
 
-def valid(args):
+def valid(args) -> bool:
     """
     Checks the args for validity.
     :param argparse.Namespace args: The arguments to validate.
     :returns: True if valid.
-    :rtype: bool
     """
     is_valid = True
 

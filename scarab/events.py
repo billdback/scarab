@@ -17,6 +17,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 This module contains base classes for Events and Commands as well as common Events and Commands used in the framework.
 """
 
+from typing import Any
+
 
 class Property:
     """
@@ -35,12 +37,11 @@ class Property:
         self.value = default_value
         self._validator = validator
 
-    def set_value(self, value):
+    def set_value(self, value) -> Any:
         """
         Sets the value on the property, calling the validator if there is one.
         :param Any value: The value to set.
         :return: The value that was set.
-        :rtype: Any
         """
         if self._validator and not self._validator(value):
             raise ValueError(f"{value} is an invalid value for {self.name}")
@@ -48,11 +49,10 @@ class Property:
         self.value = value
         return self.value
 
-    def get_value(self):
+    def get_value(self) -> Any:
         """
         Returns the current value.
         :return: The current value.
-        :rtype: Object
         """
         return self.value
 
@@ -74,13 +74,12 @@ class PropertyWrapper:
         for k in kwargs:
             self.__setattr__(k, kwargs[k])
 
-    def __setattr__(self, key, value):
+    def __setattr__(self, key, value) -> None:
         """
         Sets the value of an property.  It will first check the object's __dict__ and if present, set the value
         there.  If not, it will get added to the property list.
-        :param key: The name of the property.
-        :param value: The value of the property.
-        :return:  Nothing
+        :param Any key: The name of the property.
+        :param Any value: The value of the property.
         """
         # set to a bad value.
         if isinstance(value, Property):
@@ -92,12 +91,12 @@ class PropertyWrapper:
             else:
                 super().__setattr__(key, value)
 
-    def __getattr__(self, key):
+    def __getattr__(self, key) -> Any:
         """
         Gets the value of an property.  It will first check the object's __dict__ and if present, return the value
         there.  If not, it will return from the property list.
-        :param key: The name of the property.
-        :return:  The value of the property.
+        :param Any key: The name of the property.
+        :return: The value of the property.
         :raises AttributeError: Raised if there is no property with the given name.
         """
         if key != "_complex_properties" and key in self._complex_properties:
@@ -139,7 +138,7 @@ class Event(PropertyWrapper):
 
         super().__init__(**kwargs)
 
-    def is_complete(self):
+    def is_complete(self) -> bool:
         """
         Returns True if all of the values needed to send in the simulation have been populated.  These may not be
         populated by default.

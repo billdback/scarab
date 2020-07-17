@@ -14,11 +14,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-This module contains base classes for Events and Commands as well as common Events and Commands used in the framework.
+This module contains base classes for simulation entities.
 """
 
 from functools import wraps
 import inspect
+from typing import Dict, List, Union
 
 from scarab.events import *
 
@@ -58,12 +59,11 @@ class EventHandlerContainer:
 
         self._event_interest = EventInterest()  # used to return the events this entity is interested in.
 
-    def add_event_handler(self, event_name, handler):
+    def add_event_handler(self, event_name, handler) -> None:
         """
         Adds a handler for the given event.
         :param str event_name: Name of the event to handle.
         :param handler: Handler for an event.
-        :return: Nothing
         """
         event_handlers = self._named_event_handlers.get(event_name, None)
         if not event_handlers:
@@ -74,12 +74,11 @@ class EventHandlerContainer:
 
         self._event_interest.named_events.append(event_name)
 
-    def add_entity_created_event_handler(self, entity_name, handler):
+    def add_entity_created_event_handler(self, entity_name, handler) -> None:
         """
         Adds a handler for the creation of a given type of entity.
         :param str entity_name: Name of the entity type to handle.
         :param handler: Handler for an entity creation.
-        :return: Nothing
         """
         event_handlers = self._created_entity_event_handlers.get(entity_name, None)
         if not event_handlers:
@@ -90,12 +89,11 @@ class EventHandlerContainer:
 
         self._event_interest.entity_created_events.append(entity_name)
 
-    def add_entity_changed_event_handler(self, entity_name, handler):
+    def add_entity_changed_event_handler(self, entity_name, handler) -> None:
         """
         Adds a handler for the change of a given entity type.
         :param str entity_name: Name of the entity type to handle.
         :param handler: Handler for an entity change.
-        :return: Nothing
         """
         event_handlers = self._changed_entity_event_handlers.get(entity_name, None)
         if not event_handlers:
@@ -106,12 +104,11 @@ class EventHandlerContainer:
 
         self._event_interest.entity_changed_events.append(entity_name)
 
-    def add_entity_destroyed_event_handler(self, entity_name, handler):
+    def add_entity_destroyed_event_handler(self, entity_name, handler) -> None:
         """
         Adds a handler for the destruction of a given entity type.
         :param str entity_name: Name of the entity type to handle.
         :param handler: Handler for an entity destruction.
-        :return: Nothing
         """
         event_handlers = self._destroyed_entity_event_handlers.get(entity_name, None)
         if not event_handlers:
@@ -122,48 +119,43 @@ class EventHandlerContainer:
 
         self._event_interest.entity_destroyed_events.append(entity_name)
 
-    def get_event_handlers(self, event_type):
+    def get_event_handlers(self, event_type) -> Union[List, None]:
         """
         Returns the list of handlers for a given type.
         :param str event_type: The type of event to get the list for.
         :return: A list of event handlers for a given event type.
-        :rtype:  list | None
         """
         # If the type is an entity type, it probably won't be found.
         return self._named_event_handlers.get(event_type, None)
 
-    def get_entity_created_handlers(self, entity_name):
+    def get_entity_created_handlers(self, entity_name) -> Union[List, None]:
         """
         Returns the list of handlers for a given entity type.
         :param str entity_name: The type of entity to get the list for.
         :return: A list of event handlers for a given entity type.
-        :rtype:  list | None
         """
         return self._created_entity_event_handlers.get(entity_name, None)
 
-    def get_entity_changed_handlers(self, entity_name):
+    def get_entity_changed_handlers(self, entity_name) -> Union[List, None]:
         """
         Returns the list of handlers for a given entity type.
         :param str entity_name: The type of entity to get the list for.
         :return: A list of event handlers for a given entity type.
-        :rtype:  list | None
         """
         return self._changed_entity_event_handlers.get(entity_name, None)
 
-    def get_entity_destroyed_handlers(self, entity_name):
+    def get_entity_destroyed_handlers(self, entity_name) -> Union[List, None]:
         """
         Returns the list of handlers for a given entity type.
         :param str entity_name: The type of entity to get the list for.
         :return: A list of event handlers for a given entity type.
-        :rtype:  list | None
         """
         return self._destroyed_entity_event_handlers.get(entity_name, None)
 
-    def get_event_interest(self):
+    def get_event_interest(self) -> EventInterest:
         """
         Returns the events that this container is interested in.
         :return:  The events that this container is interested in.
-        :rtype: EventInterest
         """
         return self._event_interest
 
@@ -202,7 +194,7 @@ class Entity(PropertyWrapper):
 
         super().__init__()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Return a readable format for the entity.
         :returns: A readable string for the entity.
@@ -259,21 +251,20 @@ class Entity(PropertyWrapper):
             else:
                 raise KeyError(f"No handler for event {event.name} implemented for class {type(self).__name__}")
 
-    def get_properties(self):
+    def get_properties(self) -> Dict:
         """
         Returns the list of properties as a dictionary.
         :return: The properties for the entity.
-        :rtype: dict
         """
         attrs = {}
         for (k, v) in self._complex_properties.items():
             attrs[k] = v
+        return attrs
 
-    def get_event_interest(self):
+    def get_event_interest(self) -> EventInterest:
         """
         Returns the events this entity is interested in.
         :return: The events this entity is interested in.
-        :rtype: EventInterest
         """
         return self.get_handler_container(self.__class__).get_event_interest()
 

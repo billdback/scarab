@@ -22,7 +22,7 @@ import sys
 import time
 
 
-def eprint(*args, **kwargs):
+def eprint(*args, **kwargs) -> None:
     """
     Prints to standard error similar to regular print.
     :param args:  Positional arguments.
@@ -31,24 +31,22 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 
-def get_uuid():
+def get_uuid() -> str:
     """
     Returns a unique ID for something in the simulation.
     :return: A unique ID for something in the simulation.
-    :rtype: str
     TODO consider if this is thread safe.
     """
 
     nanoseconds = int(time.time() * 1e9)
-    return uuid.uuid1(clock_seq=nanoseconds)
+    return str(uuid.uuid1(clock_seq=nanoseconds))
 
 
-def ind(length):
+def ind(length) -> str:
     """
     Returns spaces for indentation.
     :param int length: The number of spaces.
     :returns: A string with the number of spaces to indent.
-    :rtype: str
     """
     spaces = ""
     for space in range(0, length*4):
