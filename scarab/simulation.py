@@ -52,8 +52,7 @@ class TimeEventQueue:
     def add(self, event):
         """
         Adds a new event in the proper location based on simulation time to send.
-        :param event: The event to add to the queue.
-        :type event: Event
+        :param Event event: The event to add to the queue.
         :return: Nothing
         """
         assert event
@@ -104,8 +103,7 @@ class TimeEventQueue:
     def advance(self, increment=1):
         """
         Advances the time to increase the minimum time.
-        :param increment: The increment to advance by (must be >= 1)
-        :type increment: int
+        :param int increment: The increment to advance by (must be >= 1)
         :return: The new current time.
         :rtype: int
         """
@@ -138,8 +136,7 @@ class PriorityEventQueue:
     def __init__(self, priorities=None):
         """
         Creates a new priority event queue.
-        :param priorities: The order that events should be sent for a given time.  Match on patterns.
-        :type priorities: list of str
+        :param list of str priorities: The order that events should be sent for a given time.  Match on patterns.
         """
         self._queues = {}
         self._priorities = []
@@ -202,8 +199,7 @@ class PriorityEventQueue:
     def advance(self, increment=1):
         """
         Advances the time to increase the minimum time.
-        :param increment: The increment to advance by (must be >= 1)
-        :type increment: int
+        :param int increment: The increment to advance by (must be >= 1)
         :return: The new current time.
         :rtype: int
         """
@@ -256,8 +252,7 @@ class EventMediator:
     def register_entity(self, entity):
         """
         Adds an entity to receive future events.
-        :param entity: The entity interested.
-        :type entity: Entity
+        :param Entity entity: The entity interested.
         :return: None
         """
         interest = entity.get_event_interest()
@@ -276,10 +271,8 @@ class EventMediator:
     def __add_entity_interest(entity, entity_interest, simulation_interest):
         """
         Adds entities to the
-        :param entity: The entity to add interest for.
-        :type entity: Entity
-        :param entity_interest: The list to check and add it to.
-        :type entity_interest: list
+        :param Entity entity: The entity to add interest for.
+        :param list entity_interest: The list to check and add it to.
         :param simulation_interest: The list of entity interest mappings in the simulation.
         :return: None
         """
@@ -294,8 +287,7 @@ class EventMediator:
         """
         Removes all of the registrations for a given entity.
         TODO Create a faster way to do this.
-        :param entity: The entity to remove.
-        :type entity: Entity
+        :param Entity entity: The entity to remove.
         :return: None
         """
         interest = entity.get_event_interest()
@@ -315,12 +307,9 @@ class EventMediator:
     def __deregister_entity(entity, entity_interest, simulation_interest):
         """
         Unregisters the entity from the given list.
-        :param entity: The entity to remove interest for.
-        :type entity: Entity
-        :param entity_interest: The list of entities the entity has interest for.
-        :type entity_interest: list of str
-        :param simulation_interest: The list of entity interest mappings in the simulation.
-        :type simulation_interest: dict
+        :param Entity entity: The entity to remove interest for.
+        :param list of str entity_interest: The list of entities the entity has interest for.
+        :param dict simulation_interest: The list of entity interest mappings in the simulation.
         :return:
         """
         for entity_name in entity_interest:
@@ -352,8 +341,7 @@ class EventMediator:
     def send_event(self, event):
         """
         Handles the event by sending to all of the entities that registered it.
-        :param event:  The event to handle.
-        :type event: Event
+        :param Event event:  The event to handle.
         :return: None
         """
         if event.name == ENTITY_CREATED_EVENT:
@@ -380,8 +368,7 @@ class EntityState:
     def __init__(self, entity):
         """
         Creates a new entity state object.
-        :param entity: The entity to capture state from.
-        :type entity: Entity
+        :param Entity entity: The entity to capture state from.
         """
         self.__entity_guid = entity.guid  # used to make sure changes are for the same entity.
         self.__state = self.__get_state_from_entity(entity=entity)
@@ -391,8 +378,7 @@ class EntityState:
         Compares state to an entity, update state to the new state, and returns a dictionary of the changes.
         This code handles scenarios where properties are added or removed.  It's not envisioned that this will be
         a common scenario.
-        :param entity:  The entity being compared to.
-        :type entity: Entity
+        :param Entity entity:  The entity being compared to.
         :return: A dictionary of the changes.
         :rtype: dict
         """
@@ -425,8 +411,7 @@ class EntityState:
     def __get_state_from_entity(entity):
         """
         Returns the state from an entity.
-        :param entity:  The entity to get state from.
-        :type entity: Entity
+        :param Entity entity:  The entity to get state from.
         :return: A dictionary of the changes.
         :rtype: dict
         """
@@ -447,7 +432,7 @@ SIMULATION_LOGGING = "scarab.simulations"
 class RemoteEntity(PropertyWrapper):
     """
     Represents an external entity (maybe on a different system).  Operations cannot be performed on this entity, just
-    querying the properties.
+    querying the properties.  Note that __slot__ is not supported.
     """
 
     def __init__(self, entity):
@@ -484,19 +469,13 @@ class Simulation(Thread):
                  hide_license=False):
         """
         Creates a new simulation.
-        :param name: Name of the simulation.
-        :type name: str
-        :param time_stepped: Indicates if the simulation is time stepped (i.e. one increment at a time) or not.  If
+        :param str name: Name of the simulation.
+        :param bool time_stepped: Indicates if the simulation is time stepped (i.e. one increment at a time) or not.  If
         False, then the next time sent out is the next time in the queue.
-        :type time_stepped: bool
-        :param max_time: Maximum time in the simulation.  Once this time is reached, the simulation shuts down.
-        :type max_time: int
-        :param minimum_step_time: Mininum length of a single step in seconds.
-        :type minimum_step_time: int
-        :param event_priorities: Priorities of simulation events.  These fall *after* the standard events.
-        :type event_priorities: list of str
-        :param hide_license: Hides the license that gets printed.
-        :type hide_license: bool
+        :param int max_time: Maximum time in the simulation.  Once this time is reached, the simulation shuts down.
+        :param int minimum_step_time: Mininum length of a single step in seconds.
+        :param list of str event_priorities: Priorities of simulation events.  These fall *after* the standard events.
+        :param bool hide_license: Hides the license that gets printed.
         """
         assert name
         self.time_stepped = time_stepped
@@ -643,8 +622,7 @@ class Simulation(Thread):
     def queue_event(self, event):
         """
         Queues an event for sending.
-        :param event: An event to send.
-        :type event: Event
+        :param Event event: An event to send.
         :return: Nothing
         """
         if not event.sim_time or event.sim_time <= self._previous_time:
@@ -654,8 +632,7 @@ class Simulation(Thread):
     def add_entity(self, entity):
         """
         Adds a new entity to the simulation.  Note that this is not thread safe.
-        :param entity: The entity to add.
-        :type entity: Entity
+        :param Entity entity: The entity to add.
         :return: Nothing
         """
         # Add the entity to the list along with the handlers and then generate an entity created event.
@@ -675,8 +652,7 @@ class Simulation(Thread):
         """
         Removes and entity from the simulation and informs other entities.  Note that any entities
         holding a reference to this entity should remove the entity.
-        :param entity: The entity to remove.
-        :type entity: Entity
+        :param Entity entity: The entity to remove.
         :return: None
         """
         log(ENTITY_LOGGING, f"Removing entity type {entity.name} with GUID {entity.guid}")
@@ -690,8 +666,7 @@ class Simulation(Thread):
     def register_view(self, view):
         """
         Adds a new view to be called on time updates.
-        :param view: The view interface to call.
-        :type view: ViewInterface
+        :param ViewInterface view: The view interface to call.
         :return: None
         """
         assert isinstance(view, ViewInterface)
@@ -769,10 +744,8 @@ class Simulation(Thread):
     def _update_views(self, previous_time, new_time):
         """
         Updates the views that have been registered with the simulation.  Only happens on time updates.
-        :param previous_time: The previous time the simulation is advancing from.
-        :type previous_time: int
-        :param new_time: The new time the simulation is advancing to.
-        :type new_time: int
+        :param int previous_time: The previous time the simulation is advancing from.
+        :param int new_time: The new time the simulation is advancing to.
         :return: None
         """
         for view in self._views:
@@ -781,8 +754,7 @@ class Simulation(Thread):
     def advance(self, steps=ADVANCE_UNLIMITED):
         """
         Manually advances time by the number of steps specified.
-        :param steps: The number of steps to advance by.  If not specified runs unlimited.
-        :type steps: int
+        :param int steps: The number of steps to advance by.  If not specified runs unlimited.
         :return: Nothing
         """
         assert steps > 0 or steps == Simulation.ADVANCE_UNLIMITED
@@ -801,8 +773,7 @@ class Simulation(Thread):
         Manually advances time by the number of steps specified (default of one), waiting while the sim advances.
         Note that this is mostly to make the simulation synchronous for testing.
         TODO - have an alternate approach with callbacks to make this thread safe and more flexible.
-        :param steps: The number of steps to advance by.  Must be positive.  Default is 1.
-        :type steps: int
+        :param int steps: The number of steps to advance by.  Must be positive.  Default is 1.
         :return: Nothing
         """
         assert steps > 0
@@ -855,8 +826,7 @@ class ViewInterface(Entity):
     def __init__(self, name, callback=None):
         """
         Creates a new view interface.
-        :param name: The name of the view.
-        :type name: str
+        :param str name: The name of the view.
         :param callback: A method to call to update.  Currently this only occurs on time updates.
         """
         assert name
@@ -877,10 +847,8 @@ class ViewInterface(Entity):
     def update_view(self, previous_time, new_time):
         """
         Called when the time gets updated.
-        :param previous_time: The previous simulation time.
-        :type previous_time: int
-        :param new_time: The new simulation time.
-        :type new_time: int
+        :param int previous_time: The previous simulation time.
+        :param int new_time: The new simulation time.
         """
         for callback in self._callbacks:
             callback(previous_time, new_time)

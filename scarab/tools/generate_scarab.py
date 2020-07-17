@@ -57,8 +57,7 @@ def get_args():
 def valid(args):
     """
     Checks the args for validity.
-    :param args: The arguments to validate.
-    :type args: argparse.Namespace
+    :param argparse.Namespace args: The arguments to validate.
     :returns: True if valid.
     :rtype: bool
     """

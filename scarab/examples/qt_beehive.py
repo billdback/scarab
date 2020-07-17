@@ -60,19 +60,18 @@ class BeehiveDisplayModel(Entity):
 
     @entity_created_event_handler(entity_name="beehive")
     def handle_beehive_changed(self, beehive):
-        """Handles the beehive changing.
-        :param beehive: The beehive that changed.
-        :type beehive: Entity
+        """
+        Handles the beehive changing.
+        :param RemoteEntity beehive: The beehive that changed.
         """
         self._beehive = beehive
 
     @entity_changed_event_handler(entity_name="beehive")
     def handle_beehive_changed(self, beehive, changed_properties):
-        """Handles the beehive changing.
-        :param beehive: The beehive that changed.
-        :type beehive: Entity
-        :param changed_properties: The properties that changed.
-        :type changed_properties: list of str
+        """
+        Handles the beehive changing.
+        :param RemoteEntity beehive: The beehive that changed.
+        :param list of str changed_properties: The properties that changed.
         """
         assert changed_properties is not None
         self._beehive = beehive
@@ -89,11 +88,10 @@ class BeehiveDisplayModel(Entity):
 
     @entity_changed_event_handler(entity_name="outside_temperature")
     def handle_temp_changed(self, temp, changed_properties):
-        """Handles the outside temp changing.
-        :param temp: The temperature entity that changed.
-        :type temp: Entity
-        :param changed_properties: The properties that changed.
-        :type changed_properties: list of str
+        """
+        Handles the outside temp changing.
+        :param RemoteEntity temp: The temperature entity that changed.
+        :param list of str changed_properties: The properties that changed.
         :return: None
         """
         assert changed_properties
@@ -149,10 +147,8 @@ class MainWindow(qtw.QWidget):
     def _handle_simulation_update(self, previous_time, new_time):
         """
         Handles the simulation updating.
-        :param previous_time: The previous simulation time.
-        :type previous_time: int
-        :param new_time: The new simulation time.
-        :type new_time: int
+        :param int previous_time: The previous simulation time.
+        :param int new_time: The new simulation time.
         :return: None
         """
         print("got new simulation time.")

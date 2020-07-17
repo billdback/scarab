@@ -74,8 +74,7 @@ class EntityTestWrapper:
     def send_event(self, event) -> None:
         """
         Sends a generic event to the entity.
-        :param event: The event to send.
-        :type event: Event
+        :param Event event: The event to send.
         :return: None
         """
         self.__mediator.send_event(event=event)

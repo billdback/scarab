@@ -36,10 +36,8 @@ class Loggers:
     def add_logger(self, logger, topic):
         """
         Adds a logger to the list of loggers.
-        :param logger: The logger to add.
-        :type logger: BaseLogger
-        :param topic: Topic to log on.
-        :type topic: str
+        :param BaseLogger logger: The logger to add.
+        :param str topic: Topic to log on.
         :return: None
         """
         assert isinstance(logger, BaseLogger)
@@ -55,10 +53,8 @@ class Loggers:
     def __add_logger_for_topic(self, topic, logger) -> None:
         """
         Adds a logger for an individual topic.  Helper for loggers that get added for multiple topics.
-        :param logger: The logger to add.
-        :type logger: BaseLogger
-        :param topic: Topic to log on.
-        :type topic: str
+        :param BaseLogger logger: The logger to add.
+        :param str topic: Topic to log on.
         :return: None
         """
         if topic not in self.__loggers.keys():
@@ -84,10 +80,8 @@ class Loggers:
     def log(self, topic, message):
         """
         Logs a message to a topic.
-        :param topic: Topic to log to.
-        :type topic: str
-        :param message: Message to log.
-        :type message: str
+        :param str topic: Topic to log to.
+        :param str message: Message to log.
         :return: None
         """
         for logger in self.__loggers.get(topic, []):
@@ -100,10 +94,8 @@ global_loggers = Loggers()
 def log(topic, message):
     """
     Helper to log a message to the global loggers.
-    :param topic: The topic to log to.
-    :type topic: str
-    :param message:  The message to log.
-    :type message: str
+    :param str topic: The topic to log to.
+    :param str message:  The message to log.
     :return: None
     """
     global_loggers.log(topic=topic, message=message)
@@ -113,8 +105,7 @@ def cancel_log(topic):
     """
     Cancels logging on a topic.  Note that this turns off all logging on the topic and new logs have to be added
     back.  TODO consider pausing and resuming.
-    :param topic: The topic to stop logging.
-    :type topic: str
+    :param str topic: The topic to stop logging.
     :returns: None
     """
     assert topic
@@ -129,10 +120,8 @@ class BaseLogger(ABC):
     def __init__(self, topics, date_format="%d-%m-%Y %H:%M:%S"):
         """
         Creates a new logger and registers the logger for logging messages.
-        :param topics: One or more topics to log on this logger.
-        :type topics: str | list of str
-        :param date_format: Format to use when writing log messages.
-        :type date_format: str
+        :param str | list of str topics: One or more topics to log on this logger.
+        :param str date_format: Format to use when writing log messages.
         :return: None
         """
         assert date_format  # don'e allow to be None.  Doesn't check for valid format.
@@ -153,10 +142,8 @@ class BaseLogger(ABC):
     def log(self, topic, message):
         """
         Logs a message for a given topic.
-        :param topic: The topic to log to.
-        :type topic: str
-        :param message:  The message to log.
-        :type message: str
+        :param str topic: The topic to log to.
+        :param str message: The message to log.
         :return:  None
         """
         pass
@@ -168,10 +155,8 @@ class BaseLogger(ABC):
         finally logged, not the exact time of the log message.  They should be very close.
         Format is:  [dd-mmm-yyyy hh:mm:ss] topic: message
         TODO Add the option to pass a time.
-        :param topic: The topic for the message.
-        :type topic: str
-        :param message: The message to format.
-        :type message: str
+        :param str topic: The topic for the message.
+        :param str message: The message to format.
         :return: The formatted log message.
         :rtype: str
         """
@@ -187,8 +172,7 @@ class ListLogger(BaseLogger):
     def __init__(self, topics):
         """
         Creates a logger that logs to all messages to a list for later retrieval.
-        :param topics: One or more topics to log on this logger.
-        :type topics: str | list of str
+        :param str | list of str topics: One or more topics to log on this logger.
         """
         self._logs = []
         super().__init__(topics=topics)
@@ -196,10 +180,8 @@ class ListLogger(BaseLogger):
     def log(self, topic, message):
         """
         Logs a message for a given topic.
-        :param topic: The topic to log to.
-        :type topic: str
-        :param message:  The message to log.
-        :type message: str
+        :param str topic: The topic to log to.
+        :param str message:  The message to log.
         :return:  None
         """
         self._logs.append(BaseLogger.format_message(topic=topic, message=message))
@@ -236,18 +218,15 @@ class StdOutLogger(BaseLogger):
     def __init__(self, topics):
         """
         Creates a logger that logs to all messages to standard out.
-        :param topics: One or more topics to log on this logger.
-        :type topics: str | list of str
+        :param str | list of str topics: One or more topics to log on this logger.
         """
         super().__init__(topics=topics)
 
     def log(self, topic, message):
         """
         Logs a message for a given topic.
-        :param topic: The topic to log to.
-        :type topic: str
-        :param message:  The message to log.
-        :type message: str
+        :param str topic: The topic to log to.
+        :param str message:  The message to log.
         :return:  None
         """
         print(BaseLogger.format_message(topic=topic, message=message))
@@ -261,18 +240,15 @@ class StdErrLogger(BaseLogger):
     def __init__(self, topics):
         """
         Creates a logger that logs to all messages to standard error.
-        :param topics: One or more topics to log on this logger.
-        :type topics: str | list of str
+        :param str | list of str topics: One or more topics to log on this logger.
         """
         super().__init__(topics=topics)
 
     def log(self, topic, message):
         """
         Logs a message for a given topic.
-        :param topic: The topic to log to.
-        :type topic: str
-        :param message:  The message to log.
-        :type message: str
+        :param str topic: The topic to log to.
+        :param str message:  The message to log.
         :return:  None
         """
         eprint(BaseLogger.format_message(topic=topic, message=message))
@@ -287,10 +263,8 @@ class FileLogger(BaseLogger):
     def __init__(self, topics, filename):
         """
         Creates a logger that logs to all messages to a list for later retrieval.
-        :param topics: One or more topics to log on this logger.
-        :type topics: str | list of str
-        :param filename: The name (path) of the file to log to.
-        :type filename: str
+        :param str | list of str topics: One or more topics to log on this logger.
+        :param str filename: The name (path) of the file to log to.
         :return: None
         """
         self._logs = []
@@ -301,10 +275,8 @@ class FileLogger(BaseLogger):
     def log(self, topic, message):
         """
         Logs a message for a given topic.
-        :param topic: The topic to log to.
-        :type topic: str
-        :param message:  The message to log.
-        :type message: str
+        :param str topic: The topic to log to.
+        :param str message:  The message to log.
         :return:  None
         """
         if not self._file:

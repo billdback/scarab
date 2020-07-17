@@ -30,12 +30,9 @@ class EventRepr:
     def __init__(self, class_name, event_name, attributes):
         """
         Creates new event representation.
-        :param class_name: Name of the event.
-        :type class_name: str
-        :param event_name: Name of the event.
-        :type event_name: str
-        :param attributes: List of attribute names.
-        :type attributes: list of str
+        :param str class_name: Name of the event.
+        :param str event_name: Name of the event.
+        :param list of str attributes: List of attribute names.
         """
         assert class_name
         assert event_name
@@ -54,12 +51,9 @@ class EntityRepr:
     def __init__(self, class_name, entity_name, attributes):
         """
         Creates new entity representation.
-        :param class_name: Name of the entity.
-        :type class_name: str
-        :param entity_name: Name of the entity.
-        :type entity_name: str
-        :param attributes: List of attribute names.
-        :type attributes: list of str
+        :param str class_name: Name of the entity.
+        :param str entity_name: Name of the entity.
+        :param list of str attributes: List of attribute names.
         """
         assert class_name
         assert entity_name
@@ -85,8 +79,7 @@ class SimulationRepr:
     def __init__(self, name):
         """
         Creates a new simulation representation.
-        :param name:  The name of the simulation.
-        :type name: str
+        :param str name:  The name of the simulation.
         """
         assert name
 
@@ -97,8 +90,7 @@ class SimulationRepr:
     def add_event(self, event):
         """
         Adds an event to the simulation.  Overwrites if there is an event with the given class name already.
-        :param event: The event to add.
-        :type event: EventRepr
+        :param EventRepr event: The event to add.
         :return: None
         """
         self.events[event.class_name] = copy(event)
@@ -106,8 +98,7 @@ class SimulationRepr:
     def add_entity(self, entity):
         """
         Adds an entity to the simulation.  Overwrites if there is an event with the given class name already.
-        :param entity: The event to add.
-        :type entity: EntityRepr
+        :param EntityRepr entity: The event to add.
         :return: None
         """
         self.entities[entity.class_name] = copy(entity)
@@ -172,8 +163,7 @@ class SimulationRepr:
     def _get_entity_with_name(self, entity_name):
         """
         Returns the entity with the given name.  This is O(n), so might be open to speeding up.
-        :param entity_name: Name of the entity to find.
-        :type entity_name: str
+        :param str entity_name: Name of the entity to find.
         :returns: The entity of the given name or None.
         :rtype: EntityRepr | None
         """
@@ -210,8 +200,7 @@ class SimulationRepr:
         Checks to see if the name is a "valid" class name in Python.  The convention is camel case.  The first
         letter is checked to make sure it's alpha and capital.  Other than that, check for whitespace, undersocres, and
         dashes.
-        :param name: The name to check.
-        :type name: str
+        :param str name: The name to check.
         :returns: True if it looks like it's probably a valid name.
         :rtype: bool
         """
@@ -239,8 +228,7 @@ class SimulationYAMLReader:
     def read_yaml_from_file(self, yaml_file):
         """
         Reads a YAML description from a string.
-        :param yaml_file: The file to read from.
-        :type yaml_file: str
+        :param str yaml_file: The file to read from.
         :return: SimulationRepr
         """
         with open(yaml_file, "r") as yf:
@@ -250,8 +238,7 @@ class SimulationYAMLReader:
     def read_yaml_from_str(self, yaml_str):
         """
         Reads a YAML description from a string.
-        :param yaml_str: The string containing the YAML.
-        :type yaml_str: str
+        :param str yaml_str: The string containing the YAML.
         :return: SimulationRepr
         """
         self.yaml = yaml.full_load(yaml_str)
@@ -323,11 +310,9 @@ class SimulationWriter:
     def write_simulation_module(simulation_repr, filename=None):
         """
         Writes the simulation representation to an actual simulation in a single module.
-        :param simulation_repr: The representation of the simulation to write.
-        :type simulation_repr: SimulationRepr
-        :param filename: The name of the file to write the simulation to.  If not provided, will use the
+        :param SimulationRepr simulation_repr: The representation of the simulation to write.
+        :param str filename: The name of the file to write the simulation to.  If not provided, will use the
         simulation name.
-        :type filename: str
         """
         assert simulation_repr
         if not filename:
@@ -343,10 +328,8 @@ class SimulationWriter:
     def __write_header(outfile, simulation_repr):
         """
         Writes the header of the file.
-        :param outfile: The file stream to write to.
-        :type outfile: file
-        :param simulation_repr: The simulation representation.
-        :type simulation_repr: SimulationRepr
+        :param file outfile: The file stream to write to.
+        :param SimulationRepr simulation_repr: The simulation representation.
         """
 
         outfile.write(f"""\
@@ -368,10 +351,8 @@ StdOutLogger(topics=SIMULATION_LOGGING)
     def __write_events(outfile, simulation_repr):
         """
         Writes the event classes to the file.
-        :param outfile: The file stream to write to.
-        :type outfile: file
-        :param simulation_repr: The simulation representation.
-        :type simulation_repr: SimulationRepr
+        :param file outfile: The file stream to write to.
+        :param SimulationRepr simulation_repr: The simulation representation.
         """
         for event_repr in simulation_repr.events.values():
             attribute_list = [attribute + "=None" for attribute in event_repr.attributes]
@@ -386,8 +367,7 @@ StdOutLogger(topics=SIMULATION_LOGGING)
             outfile.write(ind(2) + f'Creates a new {event_repr.event_name} event.\n')
 
             for attribute in event_repr.attributes:
-                outfile.write(ind(2) + f':param {attribute}: {attribute}\n')
-                outfile.write(ind(2) + f':type {attribute}: str\n')
+                outfile.write(ind(2) + f':param str {attribute}: {attribute}\n')
 
             outfile.write(ind(2) + f':returns: None\n')
             outfile.write(ind(2) + '"""\n')
@@ -402,10 +382,8 @@ StdOutLogger(topics=SIMULATION_LOGGING)
     def __write_entities(outfile, simulation_repr):
         """
         Writes the entity classes to the file.
-        :param outfile: The file stream to write to.
-        :type outfile: file
-        :param simulation_repr: The simulation representation.
-        :type simulation_repr: SimulationRepr
+        :param file outfile: The file stream to write to.
+        :param SimulationRepr simulation_repr: The simulation representation.
         """
         for entity_repr in simulation_repr.entities.values():
             attribute_list = [attribute + "=None" for attribute in entity_repr.attributes]
@@ -423,8 +401,7 @@ StdOutLogger(topics=SIMULATION_LOGGING)
             outfile.write(ind(2) + f'Creates a new {entity_repr.entity_name} entity.\n')
 
             for attribute in entity_repr.attributes:
-                outfile.write(ind(2) + f':param {attribute}: {attribute}\n')
-                outfile.write(ind(2) + f':type {attribute}: str\n')
+                outfile.write(ind(2) + f':param str {attribute}: {attribute}\n')
 
             outfile.write(ind(2) + '"""\n')
 
@@ -440,8 +417,7 @@ StdOutLogger(topics=SIMULATION_LOGGING)
                 outfile.write(ind(1) + f'def handle_{SimulationWriter.__clean_name(event_name)}_event(self, event):\n')
                 outfile.write(ind(2) + f'"""\n')
                 outfile.write(ind(2) + f'Handles a {event_name} event.\n')
-                outfile.write(ind(2) + f':param event: {event_name} event.\n')
-                outfile.write(ind(2) + f':type event: Event\n')
+                outfile.write(ind(2) + f':param Event event: {event_name} event.\n')
                 outfile.write(ind(2) + f':returns: None\n')
                 outfile.write(ind(2) + f'"""\n')
                 outfile.write(ind(2) + f'pass\n')
@@ -452,10 +428,8 @@ StdOutLogger(topics=SIMULATION_LOGGING)
                 outfile.write(ind(1) + f'def handle_time_event(self, previous_time, new_time):\n')
                 outfile.write(ind(2) + f'"""\n')
                 outfile.write(ind(2) + f'Handles a time change.\n')
-                outfile.write(ind(2) + f':param previous_time: The previous simulation time.\n')
-                outfile.write(ind(2) + f':type previous_time: int\n')
-                outfile.write(ind(2) + f':param new_time: The new simulation time.\n')
-                outfile.write(ind(2) + f':type new_time: int\n')
+                outfile.write(ind(2) + f':param int previous_time: The previous simulation time.\n')
+                outfile.write(ind(2) + f':param int new_time: The new simulation time.\n')
                 outfile.write(ind(2) + f':returns: None\n')
                 outfile.write(ind(2) + f'"""\n')
                 outfile.write(ind(2) + f'pass\n')
@@ -466,8 +440,7 @@ StdOutLogger(topics=SIMULATION_LOGGING)
                 outfile.write(ind(1) + f'def handle_simulation_shutdown(self, shutdown_event):\n')
                 outfile.write(ind(2) + f'"""\n')
                 outfile.write(ind(2) + f'Handles any activities related to shutting down of the simulation.\n')
-                outfile.write(ind(2) + f':param shutdown_event: The shutdown event.\n')
-                outfile.write(ind(2) + f':type shutdown_event: Event\n')
+                outfile.write(ind(2) + f':param Event shutdown_event: The shutdown event.\n')
                 outfile.write(ind(2) + f':returns: None\n')
                 outfile.write(ind(2) + f'"""\n')
                 outfile.write(ind(2) + f'pass\n')
@@ -481,8 +454,7 @@ StdOutLogger(topics=SIMULATION_LOGGING)
                                                f'_created(self, entity):\n')
                         outfile.write(ind(2) + f'"""\n')
                         outfile.write(ind(2) + f'Handles a {entity_name} created event.\n')
-                        outfile.write(ind(2) + f':param entity: {entity_name} entity.\n')
-                        outfile.write(ind(2) + f':type entity: Entity\n')
+                        outfile.write(ind(2) + f':param RemoteEntity entity: {entity_name} entity.\n')
                         outfile.write(ind(2) + f':returns: None\n')
                         outfile.write(ind(2) + f'"""\n')
                         outfile.write(ind(2) + f'pass\n')
@@ -493,8 +465,7 @@ StdOutLogger(topics=SIMULATION_LOGGING)
                                                f'_destroyed(self, entity):\n')
                         outfile.write(ind(2) + f'"""\n')
                         outfile.write(ind(2) + f'Handles a {entity_name} destroyed event.\n')
-                        outfile.write(ind(2) + f':param entity: {entity_name} entity.\n')
-                        outfile.write(ind(2) + f':type entity: Entity\n')
+                        outfile.write(ind(2) + f':param RemoteEntity entity: {entity_name} entity.\n')
                         outfile.write(ind(2) + f':returns: None\n')
                         outfile.write(ind(2) + f'"""\n')
                         outfile.write(ind(2) + f'pass\n')
@@ -505,10 +476,8 @@ StdOutLogger(topics=SIMULATION_LOGGING)
                                                f'_changed(self, entity, changed_properties):\n')
                         outfile.write(ind(2) + f'"""\n')
                         outfile.write(ind(2) + f'Handles a {entity_name} changed event.\n')
-                        outfile.write(ind(2) + f':param entity: {entity_name} entity.\n')
-                        outfile.write(ind(2) + f':type entity: Entity\n')
-                        outfile.write(ind(2) + f':param changed_properties: list of changed properties.\n')
-                        outfile.write(ind(2) + f':type changed_properties: list of str\n')
+                        outfile.write(ind(2) + f':param RemoteEntity entity: {entity_name} entity.\n')
+                        outfile.write(ind(2) + f':param list of str changed_properties: list of changed properties.\n')
                         outfile.write(ind(2) + f':returns: None\n')
                         outfile.write(ind(2) + f'"""\n')
                         outfile.write(ind(2) + f'pass\n')
@@ -518,8 +487,7 @@ StdOutLogger(topics=SIMULATION_LOGGING)
     def __clean_name(name):
         """
         Cleans a name so it can be used as a variable.
-        :param name: The name to clean.
-        :type name: str
+        :param str name: The name to clean.
         :returns: The clean name that can be used.
         :rtype: str
         """
@@ -532,10 +500,8 @@ StdOutLogger(topics=SIMULATION_LOGGING)
     def __write_main(outfile, simulation_repr):
         """
         Writes the stub for the main section.
-        :param outfile: The file stream to write to.
-        :type outfile: file
-        :param simulation_repr: The simulation representation.
-        :type simulation_repr: SimulationRepr
+        :param file outfile: The file stream to write to.
+        :param SimulationRepr simulation_repr: The simulation representation.
         """
         outfile.write(f'\n')
         outfile.write(ind(0) + f'def main():\n')

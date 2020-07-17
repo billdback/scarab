@@ -34,10 +34,8 @@ class Bee(Entity):
     def __init__(self, buzz_temp, fan_temp):
         """
         Creates a new bee with a comfort range between buzz_temp and fan_temp.
-        :param buzz_temp: The minimum temperature for the bee.  Below this level it starts buzzing.
-        :type buzz_temp: float
-        :param fan_temp: The maximum temperature for the bee.  Above this level the bee starts buzzing.
-        :type fan_temp: float
+        :param float buzz_temp: The minimum temperature for the bee.  Below this level it starts buzzing.
+        :param float fan_temp: The maximum temperature for the bee.  Above this level the bee starts buzzing.
         """
         assert buzz_temp
         assert fan_temp
@@ -52,10 +50,8 @@ class Bee(Entity):
     def handle_temperature_change(self, beehive, changed_properties):
         """
         Handles changes to the temperature in the hive.
-        :param beehive: The beehive that had a temp change.
-        :type beehive: Beehive
-        :param changed_properties: The properties that changed.  Only interested in temp changes.
-        :type changed_properties: dict[string: Any]
+        :param Beehive beehive: The beehive that had a temp change.
+        :param dict changed_properties: The properties that changed.  Only interested in temp changes.
         :return: None
         """
         if "current_temp" in changed_properties:
@@ -74,12 +70,9 @@ class Beehive(Entity):
     def __init__(self, start_temp, buzzing_impact, fanning_impact):
         """
         Creates a beehive with a standard range of healthy temperatures.
-        :param start_temp: The starting temperature for the beehive.
-        :type start_temp: float
-        :param buzzing_impact: The impact on temperature for any given bee buzzing.
-        :type buzzing_impact: float
-        :param fanning_impact: The impact on temperature for any given bee fanning.
-        :type fanning_impact: float
+        :param float start_temp: The starting temperature for the beehive.
+        :param float buzzing_impact: The impact on temperature for any given bee buzzing.
+        :param float fanning_impact: The impact on temperature for any given bee fanning.
         :returns: None
         """
         self.current_temp = start_temp
@@ -115,10 +108,8 @@ class Beehive(Entity):
     def handle_outside_temperature_update(self, outside_temperature, changed_properties):
         """
         Handles changes in the outside temperature.
-        :param outside_temperature: The outside temperature that changes.
-        :type outside_temperature: OutsideTemperature
-        :param changed_properties: List of properties that changed.
-        :type changed_properties: list of str
+        :param RemoteEntity outside_temperature: The outside temperature that changes.
+        :param list of str changed_properties: List of properties that changed.
         :return: None
         """
         assert changed_properties
@@ -128,22 +119,19 @@ class Beehive(Entity):
     def handle_time_update(self, previous_time, new_time):
         """
         Handles the time changing to calculate the temp of the hive.
-        :param previous_time: The previous simulation time.
-        :type previous_time: int
-        :param new_time: The new simulation time.
-        :type new_time: int
+        :param int previous_time: The previous simulation time.
+        :param int new_time: The new simulation time.
         """
         assert new_time > previous_time
 
         # Note that weird things might happen if there are jumps in time because the bees may have state changes that
         # were missed.
-        bee_impact = (self.get_number_bees_buzzing() * self.buzzing_impact) - (self.get_number_bees_fanning()
-                                                                           * self.fanning_impact)
+        bee_impact = (self.get_number_bees_buzzing() * self.buzzing_impact) - \
+                     (self.get_number_bees_fanning() * self.fanning_impact)
         total_bee_impact = bee_impact * (new_time - previous_time)
 
         # The impact of the outside temp is 20% of the difference.  So the warmer it gets, the more the hive wants
         # to heat.  Reverse for cooler.
-        outside_temp_impact = 0
         if self._outside_temp > self.current_temp:
             outside_temp_impact = .2 * (self._outside_temp - self.current_temp)
         else:
@@ -155,8 +143,7 @@ class Beehive(Entity):
     def handle_new_bee(self, bee):
         """
         Handle a new bee being created.
-        :param bee: The bee that was created.
-        :type bee: Bee
+        :param RemoteEntity bee: The bee that was created.
         :return: None
         """
         self.number_bees += 1
@@ -171,8 +158,7 @@ class Beehive(Entity):
     def handle_dead_bee(self, bee):
         """
         Handle a new bee being destroyed.
-        :param bee: The bee that was destroyed.
-        :type bee: Bee
+        :param RemoteEntity bee: The bee that was destroyed.
         :return: None
         """
         self.number_bees -= 1
@@ -187,10 +173,8 @@ class Beehive(Entity):
     def handle_bee_update(self, bee, changed_properties):
         """
         Handles bees changing.
-        :param bee: The bee that changed.
-        :type bee: Bee
-        :param changed_properties: The properties that changed.
-        :type changed_properties: list of str
+        :param RemoteEntity bee: The bee that changed.
+        :param list of str changed_properties: The properties that changed.
         :return: None
         """
         assert bee and changed_properties
@@ -215,10 +199,8 @@ class OutsideTemperature(Entity):
     def __init__(self, min_temp=50.0, max_temp=80.0):
         """
         Creates a new outside temperature.  The range of temperatures is fixed and will vary throughout the day.
-        :param min_temp:  The minimum temperature of the beehive to maintain in degrees F.  Default 50.0F
-        :type min_temp: float
-        :param max_temp:  The maximum temperature of the beehive to maintain in degrees F.  Default 80.0F
-        :type max_temp: float
+        :param float min_temp:  The minimum temperature of the beehive to maintain in degrees F.  Default 50.0F
+        :param float max_temp:  The maximum temperature of the beehive to maintain in degrees F.  Default 80.0F
         """
         assert min_temp is not None
         assert max_temp is not None
@@ -242,10 +224,8 @@ class OutsideTemperature(Entity):
     @time_update_event_handler
     def handle_time_update(self, previous_time, new_time):
         """Handles the time changing to calculate the temp of the hive.
-        :param previous_time: The previous simulation time.
-        :type previous_time: int
-        :param new_time: The new simulation time.
-        :type new_time: int
+        :param int previous_time: The previous simulation time.
+        :param int new_time: The new simulation time.
         """
         assert previous_time is not None
         self.current_temp = self.__minute_temps[new_time % len(self.__minute_temps)]
@@ -281,10 +261,8 @@ class BeehiveDisplayModel(Entity):
     @entity_changed_event_handler(entity_name=BEEHIVE_ENTITY_NAME)
     def handle_beehive_changed(self, beehive, changed_properties):
         """Handles the beehive changing.
-        :param beehive: The beehive that changed.
-        :type beehive: Entity
-        :param changed_properties: The properties that changed.
-        :type changed_properties: list of str
+        :param RemoteEntity beehive: The beehive that changed.
+        :param list of str changed_properties: The properties that changed.
         """
         assert changed_properties is not None
         self.beehive = beehive
@@ -302,10 +280,8 @@ class BeehiveDisplayModel(Entity):
     @entity_changed_event_handler(entity_name=OUTSIDE_TEMPERATURE_NAME)
     def handle_temp_changed(self, temp, changed_properties):
         """Handles the outside temp changing.
-        :param temp: The temperature entity that changed.
-        :type temp: Entity
-        :param changed_properties: The properties that changed.
-        :type changed_properties: list of str
+        :param RemoteEntity temp: The temperature entity that changed.
+        :param list of str changed_properties: The properties that changed.
         :return: None
         """
         assert changed_properties
@@ -315,11 +291,10 @@ class BeehiveDisplayModel(Entity):
 
     @time_update_event_handler
     def handle_time_update(self, previous_time, new_time):
-        """Handles the time changing to calculate the temp of the hive.
-        :param previous_time: The previous simulation time.
-        :type previous_time: int
-        :param new_time: The new simulation time.
-        :type new_time: int
+        """
+        Handles the time changing to calculate the temp of the hive.
+        :param int previous_time: The previous simulation time.
+        :param int new_time: The new simulation time.
         """
         assert previous_time is not None
         self.previous_time = previous_time

@@ -26,12 +26,9 @@ class Property:
     def __init__(self, name, default_value=None, validator=None):
         """
         Creates a new property.
-        :param name: The name of the property (required).
-        :type name: str
-        :param default_value: The default value of the property.
-        :type default_value: Object
-        :param validator: A function to validate the value.  This function should return a bool.
-        :type validator: callable[]: bool
+        :param str name: The name of the property (required).
+        :param Object default_value: The default value of the property.
+        :param callable[]: bool validator: A function to validate the value.  This function should return a bool.
         """
         self.name = name
         self.default_value = default_value
@@ -41,10 +38,9 @@ class Property:
     def set_value(self, value):
         """
         Sets the value on the property, calling the validator if there is one.
-        :param value: The value to set.
-        :type value: Object
+        :param Any value: The value to set.
         :return: The value that was set.
-        :rtype: Object
+        :rtype: Any
         """
         if self._validator and not self._validator(value):
             raise ValueError(f"{value} is an invalid value for {self.name}")
@@ -128,14 +124,10 @@ class Event(PropertyWrapper):
     def __init__(self, name, sim_id=None, created_by=None, sim_time=None, **kwargs):
         """
         Creates a new event to be sent to other entities.
-        :param name: Name or logical type of the event.
-        :type name: str
-        :param sim_id: Unique ID for the event.
-        :type sim_id: str
-        :param created_by: Unique ID for the thing that created the event.
-        :type created_by: str
-        :param sim_time: Simulation time the event was created.
-        :type sim_time: int
+        :param str name: Name or logical type of the event.
+        :param str sim_id: Unique ID for the event.
+        :param str created_by: Unique ID for the thing that created the event.
+        :param int sim_time: Simulation time the event was created.
         :param kwargs: Keyword arguments that are added as parameters.
         """
         assert name
@@ -178,8 +170,7 @@ class EntityCreatedEvent(Event):
     def __init__(self, entity):
         """
         Indicates that an entity was created.
-        :param entity: The entity that was created.
-        :type entity: RemoteEntity
+        :param RemoteEntity entity: The entity that was created.
         """
         # Make sure some value has been provided.
         assert entity
@@ -194,8 +185,7 @@ class EntityDestroyedEvent(Event):
     def __init__(self, entity):
         """
         Indicates that an entity was destroyed.
-        :param entity: The entity that was created.
-        :type entity: RemoteEntity
+        :param RemoteEntity entity: The entity that was created.
         """
         # Make sure some value has been provided.
         assert entity
@@ -210,10 +200,8 @@ class EntityChangedEvent(Event):
     def __init__(self, entity, changed_properties):
         """
         Indicates that an entity was destroyed.
-        :param entity: The entity that was created.
-        :type entity: RemoteEntity
-        :param changed_properties: List of properties that were changed.
-        :type changed_properties: list of str
+        :param RemoteEntity entity: The entity that was created.
+        :param list of str changed_properties: List of properties that were changed.
         """
         # Make sure some value has been provided.
         assert entity
@@ -250,10 +238,8 @@ class NewTimeEvent(Event):
     def __init__(self, previous_time, new_time):
         """
         Indicates that time changed.
-        :param previous_time: The new time in the simulation.
-        :type previous_time: int
-        :param new_time: The new time in the simulation.
-        :type new_time: int
+        :param int previous_time: The new time in the simulation.
+        :param int new_time: The new time in the simulation.
         """
         # Make sure some value has been provided.
         assert previous_time is not None, f"Unexpected previous_time of {previous_time}"
@@ -274,16 +260,11 @@ class Message(Event):
     def __init__(self, name, target_guid, sim_id=None, created_by=None, sim_time=None):
         """
         Creates a new command for a given target.
-        :param name: Name of the command.
-        :type name: str
-        :param target_guid: The ID for the target to receive the command.
-        :type target_guid: str
-        :param sim_id: Unique ID for the event.
-        :type sim_id: str
-        :param created_by: Unique ID for the thing that created the event.
-        :type created_by: str
-        :param sim_time: Simulation time the event was created.
-        :type sim_time: int
+        :param str name: Name of the command.
+        :param str target_guid: The ID for the target to receive the command.
+        :param str sim_id: Unique ID for the event.
+        :param str created_by: Unique ID for the thing that created the event.
+        :param int sim_time: Simulation time the event was created.
         """
         assert name
         assert target_guid

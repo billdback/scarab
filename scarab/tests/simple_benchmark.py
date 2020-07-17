@@ -39,8 +39,7 @@ class BenchmarkEntity(Entity):
     def handle_other_entity(self, entity):
         """
         Handles another entity being created.
-        :param entity: The entity that was created.
-        :type entity: BenchmarkEntity
+        :param BenchmarkEntity entity: The entity that was created.
         :return: None
         """
         assert entity
@@ -50,10 +49,8 @@ class BenchmarkEntity(Entity):
     def handle_other_entity(self, entity, props):
         """
         Handles another entity being created.
-        :param entity: The entity that was created.
-        :type entity: BenchmarkEntity
-        :param props: Properties that changed.
-        :type props: dict[str: str]
+        :param BenchmarkEntity entity: The entity that was created.
+        :param dict props: Properties that changed.
         :return: None
         """
         assert entity

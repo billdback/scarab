@@ -61,8 +61,7 @@ class EventHandlerContainer:
     def add_event_handler(self, event_name, handler):
         """
         Adds a handler for the given event.
-        :param event_name: Name of the event to handle.
-        :type event_name: str
+        :param str event_name: Name of the event to handle.
         :param handler: Handler for an event.
         :return: Nothing
         """
@@ -78,8 +77,7 @@ class EventHandlerContainer:
     def add_entity_created_event_handler(self, entity_name, handler):
         """
         Adds a handler for the creation of a given type of entity.
-        :param entity_name: Name of the entity type to handle.
-        :type entity_name: str
+        :param str entity_name: Name of the entity type to handle.
         :param handler: Handler for an entity creation.
         :return: Nothing
         """
@@ -95,8 +93,7 @@ class EventHandlerContainer:
     def add_entity_changed_event_handler(self, entity_name, handler):
         """
         Adds a handler for the change of a given entity type.
-        :param entity_name: Name of the entity type to handle.
-        :type entity_name: str
+        :param str entity_name: Name of the entity type to handle.
         :param handler: Handler for an entity change.
         :return: Nothing
         """
@@ -112,8 +109,7 @@ class EventHandlerContainer:
     def add_entity_destroyed_event_handler(self, entity_name, handler):
         """
         Adds a handler for the destruction of a given entity type.
-        :param entity_name: Name of the entity type to handle.
-        :type entity_name: str
+        :param str entity_name: Name of the entity type to handle.
         :param handler: Handler for an entity destruction.
         :return: Nothing
         """
@@ -129,8 +125,7 @@ class EventHandlerContainer:
     def get_event_handlers(self, event_type):
         """
         Returns the list of handlers for a given type.
-        :param event_type: The type of event to get the list for.
-        :type event_type: str
+        :param str event_type: The type of event to get the list for.
         :return: A list of event handlers for a given event type.
         :rtype:  list | None
         """
@@ -140,8 +135,7 @@ class EventHandlerContainer:
     def get_entity_created_handlers(self, entity_name):
         """
         Returns the list of handlers for a given entity type.
-        :param entity_name: The type of entity to get the list for.
-        :type entity_name: str
+        :param str entity_name: The type of entity to get the list for.
         :return: A list of event handlers for a given entity type.
         :rtype:  list | None
         """
@@ -150,8 +144,7 @@ class EventHandlerContainer:
     def get_entity_changed_handlers(self, entity_name):
         """
         Returns the list of handlers for a given entity type.
-        :param entity_name: The type of entity to get the list for.
-        :type entity_name: str
+        :param str entity_name: The type of entity to get the list for.
         :return: A list of event handlers for a given entity type.
         :rtype:  list | None
         """
@@ -160,8 +153,7 @@ class EventHandlerContainer:
     def get_entity_destroyed_handlers(self, entity_name):
         """
         Returns the list of handlers for a given entity type.
-        :param entity_name: The type of entity to get the list for.
-        :type entity_name: str
+        :param str entity_name: The type of entity to get the list for.
         :return: A list of event handlers for a given entity type.
         :rtype:  list | None
         """
@@ -198,11 +190,9 @@ class Entity(PropertyWrapper):
     def __init__(self, name, guid=None):
         """
         Creates a new entity.
-        :param name: The name of the entity.  The name is used to connect to other entities that are intereted in this
-        type of entity.
-        :type name: str
-        :param guid: Unique id for the entity
-        :type guid: str
+        :param str name: The name of the entity.  The name is used to connect to other entities that are
+        interested in this type of entity.
+        :param str guid: Unique id for the entity
         """
         assert name
 
@@ -224,8 +214,7 @@ class Entity(PropertyWrapper):
         """
         Calls the event handler for the event with the given name.
         # TODO make this more flexible to handle patterns for handlers.
-        :param event: Event to handle.
-        :type event: Event
+        :param Event event: Event to handle.
         :return:  Whatever is returned by the handler.
         """
         assert event
