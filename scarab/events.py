@@ -204,10 +204,11 @@ class EntityChangedEvent(Event):
         """
         # Make sure some value has been provided.
         assert entity
-        assert changed_properties
+        # Note that there should almost always be some changed properties, but it's not
+        # enforced to allow for edge cases.
 
         self.entity = entity
-        self.changed_properties = changed_properties
+        self.changed_properties = changed_properties if changed_properties else []
         super().__init__(name=ENTITY_CHANGED_EVENT)
 
 

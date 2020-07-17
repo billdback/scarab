@@ -607,6 +607,16 @@ class Simulation(Thread):
             event.sim_time = self._previous_time + 1  # always add in the future.
         self._event_queue.add(event=event)
 
+    def queue_message(self, message) -> None:
+        """
+        Queues a message for sending.
+        :param Message message: A message to send.
+        """
+        if not message.sim_time or message.sim_time <= self._previous_time:
+            message.sim_time = self._previous_time + 1  # always add in the future.
+        # TODO Add support for handling messages.
+        # self._message_queue.add(message=message)
+
     def add_entity(self, entity) -> None:
         """
         Adds a new entity to the simulation.  Note that this is not thread safe.

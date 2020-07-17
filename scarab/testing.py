@@ -20,7 +20,7 @@ This module contains support for testing.
 from scarab.entities import Entity
 from scarab.events import EntityChangedEvent, EntityCreatedEvent, EntityDestroyedEvent, Event
 from scarab.events import NewTimeEvent, SimulationShutdownEvent, SimulationStartupEvent
-from scarab.util import eprint, get_uuid
+from scarab.util import get_uuid
 from scarab.simulation import EventMediator
 
 
@@ -31,9 +31,31 @@ class EntityTestWrapper:
     handler methods directly.
     """
 
+    class WrapperSimulation:
+        """Simple wrapper that will capture events sent back to the simulation for testing."""
+
+        def __init__(self):
+            """Creates a new sim for testing."""
+            self.queued_events = []
+            self.queued_messages = []
+
+        def queue_event(self, event) -> None:
+            """
+            Adds an event to the event queue.
+            :param Event event:
+            """
+            self.queued_events.append(event)
+
+        def queue_message(self, message) -> None:
+            """
+            Adds an message to the message queue.
+            :param Message message:
+            """
+            self.queued_messages.append(message)
+
     # Using slots to distinguish between the wrapper and the entity.  This allows pass through to directly set and
     # get the entity attributes.
-    __slots__ = ['entity', '__mediator']
+    __slots__ = ['entity', 'simulation', '__mediator']
 
     def __init__(self, entity):
         """
@@ -46,7 +68,8 @@ class EntityTestWrapper:
         self.__mediator = EventMediator()  # used to route events.
         self.__mediator.register_entity(entity=entity)
 
-        entity._simulation = None # TODO: Need to have a simulation that the entity can call back as needed.
+        entity._simulation = EntityTestWrapper.WrapperSimulation()
+        self.simulation = entity._simulation  # make easier to access for testing.
 
     def __setattr__(self, key, value) -> None:
         """
@@ -85,10 +108,10 @@ class EntityTestWrapper:
         :param dict properties: The properties for the entity.  Assumes that all have changed.
         :return: None
         """
-        changed_properties = list(properties.keys())
+        changed_properties = list(properties.keys()) if properties else None
         ent = Entity(name=entity_name)
         if properties:
-            for k,v in properties.items():
+            for k, v in properties.items():
                 ent.__setattr__(k, v)
         self.send_event(EntityChangedEvent(ent, changed_properties=changed_properties))
 
@@ -101,7 +124,7 @@ class EntityTestWrapper:
         """
         entity = Entity(name=entity_name)
         if properties:
-            for k,v in properties.items():
+            for k, v in properties.items():
                 entity.__setattr__(key=k, value=v)
         self.send_event(EntityCreatedEvent(entity=entity))
 
@@ -116,7 +139,7 @@ class EntityTestWrapper:
         """
         entity = Entity(name=entity_name, guid=entity_guid)
         if properties:
-            for k,v in properties.items():
+            for k, v in properties.items():
                 entity.__setattr__(key=k, value=v)
         self.send_event(EntityDestroyedEvent(entity=entity))
 
