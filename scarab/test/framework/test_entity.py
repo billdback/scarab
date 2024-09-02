@@ -103,8 +103,8 @@ def test_update_entity():
     test1 = TestEntity1()
     test2 = TestEntity2(prop3="prop updated")
 
-    test1.entity_2_updated(
-        EntityUpdatedEvent(sim_time=1, entity_props=scarab_properties(test2), changed_props=['prop3']))
+    test1.entity_2_changed(
+        EntityChangedEvent(sim_time=1, entity_props=scarab_properties(test2), changed_props=['prop3']))
     assert test1.test_entity_2.prop3 == 'prop updated'
 
 

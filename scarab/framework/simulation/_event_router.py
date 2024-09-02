@@ -1,25 +1,18 @@
 """
-The actual simulation and related classes.
+Event router for routing events to the appropriate entity handlers.
 """
+
 from collections import namedtuple
-import uuid
-from typing import Dict, List
 import inspect
 import logging
+from typing import Dict, List
 
-from scarab.framework.types import SimID, EventHandler
+from scarab.framework.types import EventHandler
 from scarab.framework.events import Event, ScarabEventType
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
-
-# TODO probably want to make this a different one to make unique ids guaranteed across engines in distributed.
-def new_sim_id() -> SimID:
-    """Returns a new simulation ID"""
-    return str(uuid.uuid4())
-
 
 EntityAndHandler = namedtuple('EntityAndHandler', ['entity', 'handler'])
 
@@ -29,10 +22,6 @@ class EventRouter:
     The event router allows entities to be registered with the event router.  The router will introspect the entities
     to find their handlers and then add them.  The router can then accept mesages and route them to the correct
     entities.  Finally, entities can be removed.
-
-    TODO: Determine if the details attributes can be combined into a few that are controlled by a dictionary. For
-    example, all of the entity classes are indexed by scarab_name, but the remainder should all be just by event type,
-    so it maybe be that there are only two lists needed.
     """
 
     def __init__(self):
@@ -50,7 +39,7 @@ class EventRouter:
 
         # Entity related events.
         self._entity_created_handlers: Dict[str, List[EntityAndHandler]] = {}  # entity type -> EntityAndHandler tuple.
-        self._entity_updated_handlers: Dict[str, List[EntityAndHandler]] = {}  # entity type -> EntityAndHandler tuple.
+        self._entity_changed_handlers: Dict[str, List[EntityAndHandler]] = {}  # entity type -> EntityAndHandler tuple.
         self._entity_destroyed_handlers: Dict[
             str, List[EntityAndHandler]] = {}  # entity type -> EntityAndHandler tuple.
 
@@ -104,13 +93,13 @@ class EventRouter:
                     # Based on the type, add it to the correct list.
                     if attr.event_type == ScarabEventType.ENTITY_CREATED:
                         self._register_entity_created_handler(entity_name_to_handle=attr.entity_name, entity=entity,
-                                                         handler=attr)
-                    elif attr.event_type == ScarabEventType.ENTITY_UPDATED:
-                        self._register_entity_updated_handler(entity_name_to_handle=attr.entity_name, entity=entity,
-                                                         handler=attr)
+                                                              handler=attr)
+                    elif attr.event_type == ScarabEventType.ENTITY_CHANGED:
+                        self._register_entity_changed_handler(entity_name_to_handle=attr.entity_name, entity=entity,
+                                                              handler=attr)
                     elif attr.event_type == ScarabEventType.ENTITY_DESTROYED:
                         self._register_entity_destroyed_handler(entity_name_to_handle=attr.entity_name, entity=entity,
-                                                           handler=attr)
+                                                                handler=attr)
                     elif attr.event_type == ScarabEventType.SIMULATION_START:
                         self._register_simulation_start_handler(entity=entity, handler=attr)
                     elif attr.event_type == ScarabEventType.SIMULATION_PAUSE:
@@ -122,11 +111,13 @@ class EventRouter:
                     elif attr.event_type == ScarabEventType.TIME_UPDATED:
                         self._register_time_updated_handler(entity=entity, handler=attr)
                     elif attr.event_type == ScarabEventType.NAMED_EVENT:
-                       self._register_named_event_handler(event_name_to_handle=attr.event_name, entity=entity, handler=attr)
+                        self._register_named_event_handler(event_name_to_handle=attr.event_name, entity=entity,
+                                                           handler=attr)
                     else:
                         logger.info(f"\t{attr_name} not yet supported")
 
-    def _register_entity_created_handler(self, entity_name_to_handle: str, entity: object, handler: EventHandler) -> None:
+    def _register_entity_created_handler(self, entity_name_to_handle: str, entity: object,
+                                         handler: EventHandler) -> None:
         """
         Adds the event handler for the entity with the given name.
         :param entity_name_to_handle: The name of the entity that the handler if to be called for.
@@ -137,18 +128,20 @@ class EventRouter:
         entity_handlers.append(EntityAndHandler(entity, handler))
         self._entity_created_handlers[entity_name_to_handle] = entity_handlers  # add back to make sure it exists.
 
-    def _register_entity_updated_handler(self, entity_name_to_handle: str, entity: object, handler: EventHandler) -> None:
+    def _register_entity_changed_handler(self, entity_name_to_handle: str, entity: object,
+                                         handler: EventHandler) -> None:
         """
         Adds the event handler for the entity with the given name.
         :param entity_name_to_handle: The name of the entity that the handler if to be called for.
         :param entity: The entity with the handler.
         :param handler: The event handler for the entity.
         """
-        entity_handlers = self._entity_updated_handlers.get(entity_name_to_handle, [])
+        entity_handlers = self._entity_changed_handlers.get(entity_name_to_handle, [])
         entity_handlers.append(EntityAndHandler(entity, handler))
-        self._entity_updated_handlers[entity_name_to_handle] = entity_handlers  # add back to make sure it exists.
+        self._entity_changed_handlers[entity_name_to_handle] = entity_handlers  # add back to make sure it exists.
 
-    def _register_entity_destroyed_handler(self, entity_name_to_handle: str, entity: object, handler: EventHandler) -> None:
+    def _register_entity_destroyed_handler(self, entity_name_to_handle: str, entity: object,
+                                           handler: EventHandler) -> None:
         """
         Adds the event handler for the entity with the given name.
         :param entity_name_to_handle: The name of the entity that the handler if to be called for.
@@ -213,18 +206,52 @@ class EventRouter:
     def unregister(self, entity: object) -> None:
         """
         Unregisters (removes) an entity by removing all references, so it won't be called in the future.
+        Note that this process is a bit intensive depending on the number of entities and handlers.  There is an
+        assumption that entities in the simulation won't be removed frequently and at high rates.
         :param entity: The entity to unregister.  Entities are unique based on their IDs.
         """
+
+        # Basically have to go through every list and remove the handler for the given entity.
+        # Perhaps it would be better to break these out, but the code is pretty small and has to iterate all lists.
+
+        # Entity event handlers.
+        self._entity_created_handlers = {key: [item for item in value if item.entity.scarab_id != entity.scarab_id] for
+                                         key, value in self._entity_created_handlers.items()}
+        self._entity_changed_handlers = {key: [item for item in value if item.entity.scarab_id != entity.scarab_id] for
+                                         key, value in self._entity_changed_handlers.items()}
+        self._entity_destroyed_handlers = {key: [item for item in value if item.entity.scarab_id != entity.scarab_id]
+                                           for
+                                           key, value in self._entity_destroyed_handlers.items()}
+
+        # Simulation state change handlers.
+        self._simulation_start_handlers = [entry for entry in self._simulation_start_handlers if
+                                           entry.entity.scarab_id != entity.scarab_id]
+        self._simulation_pause_handlers = [entry for entry in self._simulation_pause_handlers if
+                                           entry.entity.scarab_id != entity.scarab_id]
+        self._simulation_resume_handlers = [entry for entry in self._simulation_resume_handlers if
+                                            entry.entity.scarab_id != entity.scarab_id]
+        self._simulation_shutdown_handlers = [entry for entry in self._simulation_shutdown_handlers if
+                                              entry.entity.scarab_id != entity.scarab_id]
+
+        # Time updated events.
+        self._time_updated_handlers = [entry for entry in self._time_updated_handlers if
+                                       entry.entity.scarab_id != entity.scarab_id]
+
+        # Generic (named) events.
+        self._named_event_handlers = {key: [item for item in value if item.entity.scarab_id != entity.scarab_id] for
+                                      key, value in self._named_event_handlers.items()}
 
     def route(self, event: Event) -> None:
         """
         Routes the events to all event handlers.
         :param event: The event to route.
+        WARNING | FUTURE: There may be scenarios where a method and an attribute have the same names and handlers will fail to
+        be registered.
         """
 
         if event.event_name == ScarabEventType.ENTITY_CREATED:
             self._handle_entity_created(event)
-        elif event.event_name == ScarabEventType.ENTITY_UPDATED:
+        elif event.event_name == ScarabEventType.ENTITY_CHANGED:
             self._handle_entity_updated(event)
         elif event.event_name == ScarabEventType.ENTITY_DESTROYED:
             self._handle_entity_destroyed(event)
@@ -251,19 +278,25 @@ class EventRouter:
         # event handlers are stored by entity name of entity to be handled.
         event_handlers = self._entity_created_handlers.get(event.entity.scarab_name, [])
         for h in event_handlers:
-            h.handler(event)
+            try:
+                h.handler(event)
+            except Exception as e:
+                logger.error(f"Error handling event {event} for entity {h.entity}: {e}")
 
     def _handle_entity_updated(self, event: Event) -> None:
         """
         Handles entity updated events.
         :param event: An entity updated event.
         """
-        assert event.event_name == ScarabEventType.ENTITY_UPDATED
+        assert event.event_name == ScarabEventType.ENTITY_CHANGED
 
         # event handlers are stored by entity name of entity to be handled.
-        event_handlers = self._entity_updated_handlers.get(event.entity.scarab_name, [])
+        event_handlers = self._entity_changed_handlers.get(event.entity.scarab_name, [])
         for h in event_handlers:
-            h.handler(event)
+            try:
+                h.handler(event)
+            except Exception as e:
+                logger.error(f"Error handling event {event} for entity {h.entity}: {e}")
 
     def _handle_entity_destroyed(self, event: Event) -> None:
         """
@@ -275,7 +308,10 @@ class EventRouter:
         # event handlers are stored by entity name of entity to be handled.
         event_handlers = self._entity_destroyed_handlers.get(event.entity.scarab_name, [])
         for h in event_handlers:
-            h.handler(event)
+            try:
+                h.handler(event)
+            except Exception as e:
+                logger.error(f"Error handling event {event} for entity {h.entity}: {e}")
 
     def _handle_simulation_start(self, event: Event) -> None:
         """
@@ -285,7 +321,10 @@ class EventRouter:
         assert event.event_name == ScarabEventType.SIMULATION_START
 
         for h in self._simulation_start_handlers:
-            h.handler(event)
+            try:
+                h.handler(event)
+            except Exception as e:
+                logger.error(f"Error handling event {event} for entity {h.entity}: {e}")
 
     def _handle_simulation_pause(self, event: Event) -> None:
         """
@@ -295,7 +334,10 @@ class EventRouter:
         assert event.event_name == ScarabEventType.SIMULATION_PAUSE
 
         for h in self._simulation_pause_handlers:
-            h.handler(event)
+            try:
+                h.handler(event)
+            except Exception as e:
+                logger.error(f"Error handling event {event} for entity {h.entity}: {e}")
 
     def _handle_simulation_resume(self, event: Event) -> None:
         """
@@ -304,8 +346,11 @@ class EventRouter:
         """
         assert event.event_name == ScarabEventType.SIMULATION_RESUME
 
-        for h in self._simulation_start_handlers:
-            h.handler(event)
+        for h in self._simulation_resume_handlers:
+            try:
+                h.handler(event)
+            except Exception as e:
+                logger.error(f"Error handling event {event} for entity {h.entity}: {e}")
 
     def _handle_simulation_shutdown(self, event: Event) -> None:
         """
@@ -315,7 +360,10 @@ class EventRouter:
         assert event.event_name == ScarabEventType.SIMULATION_SHUTDOWN
 
         for h in self._simulation_shutdown_handlers:
-            h.handler(event)
+            try:
+                h.handler(event)
+            except Exception as e:
+                logger.error(f"Error handling event {event} for entity {h.entity}: {e}")
 
     def _handle_time_updated(self, event: Event) -> None:
         """
@@ -325,7 +373,10 @@ class EventRouter:
         assert event.event_name == ScarabEventType.TIME_UPDATED
 
         for h in self._time_updated_handlers:
-            h.handler(event)
+            try:
+                h.handler(event)
+            except Exception as e:
+                logger.error(f"Error handling event {event} for entity {h.entity}: {e}")
 
     def _handle_named_event(self, event: Event) -> None:
         """
@@ -335,4 +386,7 @@ class EventRouter:
         # event handlers are stored by event name of event to be handled.
         event_handlers = self._named_event_handlers.get(event.event_name, [])
         for h in event_handlers:
-            h.handler(event)
+            try:
+                h.handler(event)
+            except Exception as e:
+                logger.error(f"Error handling event {event} for entity {h.entity}: {e}")

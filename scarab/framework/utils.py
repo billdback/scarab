@@ -2,10 +2,7 @@
 General utilities for the framework.
 """
 import json
-import uuid
 from typing import Dict
-
-from scarab.framework.simulation import SimID
 
 
 def object_to_dict(obj: object) -> Dict[str, any]:
@@ -27,5 +24,3 @@ def object_to_json(obj: object) -> str:
     :param obj: The object to convert.  Only public properties (i.e. ones that don't start with _ will be added.
     """
     return json.dumps(object_to_dict(obj))
-
-

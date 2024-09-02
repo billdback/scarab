@@ -10,9 +10,14 @@ from .test_items import TestEntity2
 def test_event_names():
     """Simple test mostly to verify that the event constants are seen."""
     assert ScarabEventType.ENTITY_CREATED.value == "scarab.entity.created"
-    assert ScarabEventType.ENTITY_UPDATED.value == "scarab.entity.updated"
+    assert ScarabEventType.ENTITY_CHANGED.value == "scarab.entity.changed"
     assert ScarabEventType.ENTITY_DESTROYED.value == "scarab.entity.destroyed"
     assert ScarabEventType.TIME_UPDATED.value == "scarab.time.updated"
+
+    # and make sure the types get converted properly.
+    assert "scarab.entity.created" in standard_event_names
+    assert "scarab.simulation.start" in standard_event_names
+    assert "scarab.named-event" in standard_event_names
 
 
 def test_base_event():
@@ -40,8 +45,8 @@ def test_entity_updated_event():
     test_entity = TestEntity2(prop3='prop3', prop4=4)
     test_entity.prop3 = 'prop3-modified'
 
-    evt = EntityUpdatedEvent(sim_time=1, entity_props=scarab_properties(test_entity), changed_props=['prop3'])
-    assert evt.event_name == ScarabEventType.ENTITY_UPDATED.value
+    evt = EntityChangedEvent(sim_time=1, entity_props=scarab_properties(test_entity), changed_props=['prop3'])
+    assert evt.event_name == ScarabEventType.ENTITY_CHANGED.value
 
     assert evt.sim_time == 1
     assert evt.entity.scarab_name == 'test2'

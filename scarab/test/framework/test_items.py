@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
-from scarab.framework.entity import Entity, entity_created, entity_updated, entity_destroyed, simulation_start, \
+from scarab.framework.entity import Entity, entity_created, entity_changed, entity_destroyed, simulation_start, \
     simulation_pause, simulation_resume, simulation_shutdown, time_updated, event
-from scarab.framework.events import EntityCreatedEvent, Event, ScarabEventType, EntityUpdatedEvent, \
+from scarab.framework.events import EntityCreatedEvent, Event, ScarabEventType, EntityChangedEvent, \
     EntityDestroyedEvent, \
     SimulationStartEvent, SimulationPauseEvent, SimulationResumeEvent, SimulationShutdownEvent, TimeUpdatedEvent
 
@@ -22,6 +22,22 @@ class TestEntity1:
         self.simulation_running = False
         self.simulation_time = 0
 
+        # used to test simulation state events.
+        self.simulation_has_started = False
+        self.simulation_has_paused = False
+        self.simulation_has_resumed = False
+        self.simulation_has_shutdown = False
+
+        self.nbr_generic_events = 0
+
+    def reset(self):
+        """Helper for testing to reset the entity to the init state."""
+        self.nbr_test2_entities = 0
+        self.test_entity_2 = None
+
+        self.simulation_running = False
+        self.simulation_time = 0
+
         self.nbr_generic_events = 0
 
     @entity_created(entity_name='test2')
@@ -32,8 +48,8 @@ class TestEntity1:
         self.nbr_test2_entities += 1
         self.test_entity_2 = ce.entity
 
-    @entity_updated(entity_name='test2')
-    def entity_2_updated(self, ue: EntityUpdatedEvent):
+    @entity_changed(entity_name='test2')
+    def entity_2_changed(self, ue: EntityChangedEvent):
         """Called with a test2 entity is updated."""
         self.test_entity_2 = ue.entity
 
@@ -47,21 +63,25 @@ class TestEntity1:
     def simulation_start(self, se: SimulationStartEvent):
         """Called when the simulation starts."""
         self.simulation_running = True
+        self.simulation_has_started = True
 
     @simulation_pause()
     def simulation_pause(self, se: SimulationPauseEvent):
         """Called when the simulation starts."""
         self.simulation_running = False
+        self.simulation_has_paused = True
 
     @simulation_resume()
     def simulation_resume(self, se: SimulationResumeEvent):
         """Called when the simulation resumes."""
         self.simulation_running = True
+        self.simulation_has_resumed = True
 
     @simulation_shutdown()
     def simulation_shutdown(self, se: SimulationShutdownEvent):
         """Called when the simulation is shutting down."""
         self.simulation_running = False
+        self.simulation_has_shutdown = True
 
     @time_updated()
     def time_updated(self, tue: TimeUpdatedEvent):
@@ -90,3 +110,11 @@ class TestEntity2:
         self.prop4 = prop4
 
         self.prop5 = True  # not in the type, but should be OK
+
+        self.entity1_changed_props = []
+
+    @entity_changed(entity_name='test1')
+    def handle_entity1_changed(self, evt: EntityChangedEvent):
+        """Remembers all the changed properties over time."""
+        self.entity1_changed_props.extend(evt.changed_properties)
+        self.entity1_changed_props = list(set(self.entity1_changed_props))

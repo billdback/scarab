@@ -71,7 +71,7 @@ class EntityWrapper(Generic[T]):
         return True
 
 
-def scarab_properties(obj) -> dict:
+def scarab_properties(obj) -> Dict[str, object]:
     """
     Returns a list of the properties for a scarab entity, including the name and id as a dictionary.
     """
@@ -155,7 +155,7 @@ class entity_created(ScarabEventHandler):
         return wrapper
 
 
-class entity_updated(ScarabEventHandler):
+class entity_changed(ScarabEventHandler):
     """
     Decorator for methods that handle entity updated events.
 
@@ -182,7 +182,7 @@ class entity_updated(ScarabEventHandler):
             return func(instance, *local_args, **local_kwargs)
 
         wrapper.scarab_handler = True
-        wrapper.event_type = ScarabEventType.ENTITY_UPDATED
+        wrapper.event_type = ScarabEventType.ENTITY_CHANGED
         wrapper.entity_name = self.entity_name
 
         return wrapper
@@ -323,7 +323,7 @@ class simulation_shutdown(ScarabEventHandler):
 
     def __init__(self):
         """
-        Create a new wrapper for handling simulation shutdown events
+        Create a new wrapper for handling simulation shutdown events.
         """
         super().__init__()
 
