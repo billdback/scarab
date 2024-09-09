@@ -115,6 +115,8 @@ class Simulation:
         # Order of events is time updated, then stuff from the queue.  Note that
         # simulation events are sent when they occur.
 
+        logger.info(f"Simulation stepping at time {self._current_time}")
+
         # FUTURE For now just incrementing by 1, but could change in the future.
         self._event_router.route(TimeUpdatedEvent(sim_time=self._current_time, previous_time=self._current_time - 1))
         before_event_properties = self._get_before_entity_properties()
