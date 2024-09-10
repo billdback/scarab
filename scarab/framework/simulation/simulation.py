@@ -1,11 +1,13 @@
 """
 The actual simulation class.
 """
+import asyncio
 from enum import StrEnum
 import logging
 import time
 from typing import Dict, List
 import uuid
+import websockets
 
 from ._event_queue import OrderedEventQueue
 from ._event_router import EventRouter
@@ -57,13 +59,24 @@ class Simulation:
         """Returns the current state of the simulation"""
         return self._current_state
 
-    def run(self, nbr_steps=None, cycle_length=0) -> None:
+    # TODO - run should kick off the run and the websocket server for connections.  Convert the run logic to a
+    # async function and then gather the websocket server and run.
+
+    def run(self, nbr_steps=None, step_length=0):
         """
         Runs the simulation for the number of steps (or until there are no more events in the queue).
         :param nbr_steps: If provided (i.e. positive number), will only run this many steps and then pause.
-        :param cycle_length: The (approximate) length of a given step in seconds.  It may not be exact.
+        :param step_length: The (approximate) length of a given step in seconds.  It may not be exact.
         """
-        if nbr_steps <= 0:
+        asyncio.run(self._run(nbr_steps, step_length))
+
+    async def _run(self, nbr_steps=None, step_length=0) -> None:
+        """
+        Runs the simulation for the number of steps (or until there are no more events in the queue).
+        :param nbr_steps: If provided (i.e. positive number), will only run this many steps and then pause.
+        :param step_length: The (approximate) length of a given step in seconds.  It may not be exact.
+        """
+        if nbr_steps and nbr_steps <= 0:
             logger.warning(f"Attempting to run negative or zero steps: {nbr_steps}")
             return
 
@@ -97,8 +110,8 @@ class Simulation:
 
                     cycle_end_time = time.time()
                     execution_time = cycle_end_time - cycle_start_time
-                    if execution_time < cycle_length:
-                        time.sleep(cycle_length - execution_time)
+                    if execution_time < step_length:
+                        time.sleep(step_length - execution_time)
 
                 # if not indefinite, see if we've reached the pause time.  Also want to return in these cases vs. just
                 # getting a command to pause.

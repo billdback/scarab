@@ -33,4 +33,4 @@ sim = Simulation()
 for i in range(0, 10):
     sim.add_entity(SimpleEntity(name="basic-entity" + str(i)))
 
-sim.run(nbr_steps=10, cycle_length=10)
+sim.run(nbr_steps=10, step_length=3)
