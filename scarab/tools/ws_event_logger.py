@@ -45,12 +45,13 @@ async def receive_events(server_url) -> None:
 
 if __name__ == "__main__":
     # get server_url and port as command line arguments
-    server_url = "ws://" + sys.argv[1] + ":" + str(sys.argv[2])
+    server_url = sys.argv[1] if len(sys.argv) > 1 else "localhost"
+    server_port = str(sys.argv[2]) if len(sys.argv) > 2 else 12345
+    ws_url = f"ws://{server_url}:{server_port}"
 
     # run until shutdown.
     try:
-        asyncio.run(receive_events(server_url))
+        asyncio.run(receive_events(ws_url))
     except OSError as e:
         print("Connection failed. Error: " + str(e))
         print("Check that the server is running and the client can connect.")
-

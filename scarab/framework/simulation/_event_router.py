@@ -2,11 +2,13 @@
 Event router for routing events to the appropriate entity handlers.
 """
 
+import asyncio
 from collections import namedtuple
 import inspect
 import logging
 from typing import Dict, List
 
+from ._ws_server import WSEventServer
 from scarab.framework.types import EventHandler
 from scarab.framework.events import Event, ScarabEventType
 
@@ -20,11 +22,11 @@ EntityAndHandler = namedtuple('EntityAndHandler', ['entity', 'handler'])
 class EventRouter:
     """
     The event router allows entities to be registered with the event router.  The router will introspect the entities
-    to find their handlers and then add them.  The router can then accept mesages and route them to the correct
+    to find their handlers and then add them.  The router can then accept messages and route them to the correct
     entities.  Finally, entities can be removed.
     """
 
-    def __init__(self):
+    def __init__(self, ws_server: WSEventServer):
         """
         Create a new EventRouter that will have the handlers for the entity.
 
@@ -35,6 +37,7 @@ class EventRouter:
         EntityCreatedEvent, the router stores in a dictionary based on the entity name (str).  Then the list contains
         the entity and handler to call.  This allows the router to invoke the method on the instance.  It also makes it
         possible to easily delete the entity when it's destroyed.
+        :param ws_server: The websocket server to send events to.
         """
 
         # Entity related events.
@@ -55,6 +58,9 @@ class EventRouter:
         # Generic (named) events.
         self._named_event_handlers: Dict[str, List[EntityAndHandler]] = {}  # event name -> Entity and handler tuple.
 
+        # Websocket server to send all events to.
+        self._ws_server = ws_server
+
     def register(self, entity: object) -> None:
         """
         Registers an entity with the router.  The router will search the entity for handlers and then register those
@@ -67,7 +73,7 @@ class EventRouter:
             logger.error(f"{object} doesn't appear to be an entity.")
             return
 
-        logger.info(f"Registering entity: {entity.scarab_name}")
+        logger.debug(f"Registering entity: {entity.scarab_name}")
 
         for attr_name in dir(entity):
             attr = getattr(entity, attr_name)
@@ -241,13 +247,14 @@ class EventRouter:
         self._named_event_handlers = {key: [item for item in value if item.entity.scarab_id != entity.scarab_id] for
                                       key, value in self._named_event_handlers.items()}
 
-    def route(self, event: Event) -> None:
+    async def route(self, event: Event) -> None:
         """
         Routes the events to all event handlers.
         :param event: The event to route.
         WARNING | FUTURE: There may be scenarios where a method and an attribute have the same names and handlers will fail to
         be registered.
         """
+        logger.debug(f"Routing event {event.to_json()}")
 
         if event.event_name == ScarabEventType.ENTITY_CREATED:
             self._handle_entity_created(event)
@@ -267,6 +274,9 @@ class EventRouter:
             self._handle_time_updated(event)
         else:
             self._handle_named_event(event)
+
+        if self._ws_server:
+            await self._ws_server.send_event(event)  # this is a coroutine, so wait to finish.
 
     def _handle_entity_created(self, event: Event) -> None:
         """

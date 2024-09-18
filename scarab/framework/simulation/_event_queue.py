@@ -120,22 +120,8 @@ class OrderedEventQueue:
     _ENTITY_DESTROY_IDX = 2
     _EVENT_IDX = 3
 
-    # TODO - remove if not needed.
-    # _TIME_UPDATE_IDX = 0
-    # _SIMULATION_IDX = 1
-    # _ENTITY_CREATE_IDX = 2
-    # _ENTITY_UPDATE_IDX = 3
-    # _ENTITY_DESTROY_IDX = 4
-    # _EVENT_IDX = 5
-
     # Maps from the type to the index of the queues to add to.
-    # NOTE: Simulation events can probably be sent directly from the simulation.  It will improve the time management.
     _event_name_to_idx_map: Dict[str, int] = {
-        # ScarabEventType.TIME_UPDATED.value: _TIME_UPDATE_IDX,
-        # ScarabEventType.SIMULATION_START.value: _SIMULATION_IDX,
-        # ScarabEventType.SIMULATION_PAUSE.value: _SIMULATION_IDX,
-        # ScarabEventType.SIMULATION_RESUME.value: _SIMULATION_IDX,
-        # ScarabEventType.SIMULATION_SHUTDOWN.value: _SIMULATION_IDX,
         ScarabEventType.ENTITY_CREATED.value: _ENTITY_CREATE_IDX,
         ScarabEventType.ENTITY_CHANGED.value: _ENTITY_UPDATE_IDX,
         ScarabEventType.ENTITY_DESTROYED.value: _ENTITY_DESTROY_IDX,
@@ -144,9 +130,7 @@ class OrderedEventQueue:
 
     def __init__(self):
         """Creates a new, ordered event queue."""
-        self._event_queues = [# TimeEventQueue(),  # time update events.
-                              # TimeEventQueue(),  # simulation events.
-                              TimeEventQueue(),  # entity create events.
+        self._event_queues = [TimeEventQueue(),  # entity create events.
                               TimeEventQueue(),  # entity update events.
                               TimeEventQueue(),  # entity destroy events.
                               TimeEventQueue()]  # other events.
@@ -172,8 +156,10 @@ class OrderedEventQueue:
     def put(self, event: Event) -> None:
         """
         Adds an event to the queue. The event name will determine the proper queue to add to.
-        :param event:
+        :param event: The event to add to the queues.
         """
+
+        logger.debug(f"Adding event to queue: {event.to_json()}")
 
         # named events actually have different names, so they get put in the named event queue.
         if event.event_name not in standard_event_names:

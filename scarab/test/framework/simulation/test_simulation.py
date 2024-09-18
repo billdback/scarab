@@ -1,6 +1,8 @@
 """
 Tests the simulation and related functionality.
 """
+import asyncio
+
 import pytest
 
 from scarab.framework.simulation.simulation import Simulation, SimulationState
@@ -15,16 +17,17 @@ def test_basic_simulation_events():
 
     sim.run(10)
     assert sim.state == SimulationState.paused
-    assert entity.simulation_has_started == True
-    assert entity.simulation_has_paused == True
+    assert entity.simulation_has_started is True
+    assert entity.simulation_has_paused is True
     assert entity.simulation_time == 10
 
     sim.run(5)  # could also call simulation resume, but that's called by calling run again.
-    assert entity.simulation_has_resumed == True
+    assert entity.simulation_has_resumed is True
     assert entity.simulation_time == 15
 
     sim.shutdown()
-    assert entity.simulation_has_shutdown == True
+
+    assert entity.simulation_has_shutdown is True
     assert entity.simulation_time == 15
 
     with pytest.raises(RuntimeError):

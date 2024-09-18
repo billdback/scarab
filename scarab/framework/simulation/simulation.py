@@ -7,10 +7,10 @@ import logging
 import time
 from typing import Dict, List
 import uuid
-import websockets
 
 from ._event_queue import OrderedEventQueue
 from ._event_router import EventRouter
+from ._ws_server import WSEventServer
 
 from scarab.framework.entity import Entity, scarab_properties
 from scarab.framework.events import Event, EntityCreatedEvent, EntityDestroyedEvent, EntityChangedEvent, \
@@ -19,7 +19,7 @@ from scarab.framework.events import Event, EntityCreatedEvent, EntityDestroyedEv
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 SimID = str
 
@@ -45,39 +45,56 @@ class Simulation:
         """
         Creates a new simulation.
         """
+
+        # Track state including changes.
         self._current_state = SimulationState.paused
+        self._previous_state = self._current_state
+
         self._current_time = 0
         self._run_to = -1  # used to determine how long to run.
+        self._ws_server = WSEventServer(self)
 
-        self._entities: Dict[SimID, Entity] = {}
+        # Technically has entities, but entities are simply objects with scarab_ properties.
+        self._entities: Dict[SimID, object] = {}
 
         self._event_queue = OrderedEventQueue()
-        self._event_router = EventRouter()
+        self._event_router = EventRouter(self._ws_server)
 
     @property
     def state(self) -> SimulationState:
         """Returns the current state of the simulation"""
         return self._current_state
 
-    # TODO - run should kick off the run and the websocket server for connections.  Convert the run logic to a
-    # async function and then gather the websocket server and run.
-
-    def run(self, nbr_steps=None, step_length=0):
+    def run(self, nbr_steps=None, step_length=0) -> None:
         """
         Runs the simulation for the number of steps (or until there are no more events in the queue).
-        :param nbr_steps: If provided (i.e. positive number), will only run this many steps and then pause.
+        :param nbr_steps: If provided (i.e. positive number), will only run this many steps and then shutdown.
         :param step_length: The (approximate) length of a given step in seconds.  It may not be exact.
         """
         asyncio.run(self._run(nbr_steps, step_length))
 
-    async def _run(self, nbr_steps=None, step_length=0) -> None:
+    async def _run(self, nbr_steps, step_length) -> None:
         """
-        Runs the simulation for the number of steps (or until there are no more events in the queue).
-        :param nbr_steps: If provided (i.e. positive number), will only run this many steps and then pause.
+        Kicks off the simulation and the socket server.
+        :param nbr_steps: If provided (i.e. positive number), will only run this many steps and then shutdown.
         :param step_length: The (approximate) length of a given step in seconds.  It may not be exact.
         """
+
+        await self._ws_server.start_server()
+        # NOT SURE IF NEEDED - await asyncio.sleep(2)  # Make sure the server has time to start handling connections.
+
+        await self._run_steps(nbr_steps, step_length)
+        await self._ws_server.stop_server()
+
+    async def _run_steps(self, nbr_steps=None, step_length=0) -> None:
+        """
+        Runs the simulation for the number of steps (or until there are no more events in the queue).
+        :param nbr_steps: If provided (i.e. positive number), will only run this many steps and then shutdown.
+        :param step_length: The (approximate) length of a given step in seconds.  It may not be exact.
+        """
+        logger.info(f'running simulation {nbr_steps} steps')
         if nbr_steps and nbr_steps <= 0:
-            logger.warning(f"Attempting to run negative or zero steps: {nbr_steps}")
+            logger.error(f"Attempting to run negative or zero steps: {nbr_steps}")
             return
 
         if nbr_steps:
@@ -87,16 +104,21 @@ class Simulation:
             raise RuntimeError(f"Attempting to run a simulation after shutdown.")
 
         if self._current_time == 0:  # just starting for the first time.
-            self._event_router.route(SimulationStartEvent(sim_time=self._current_time))
-        else:  # must be resuming
-            self.resume()
+            await self._route_event(SimulationStartEvent(sim_time=self._current_time))
+            self._current_state = SimulationState.running # have to switch to running.
+        else:  # must be resuming - changes will be caught below.
+            pass
 
         # told to run, so set the state.
         self._current_state = SimulationState.running
 
-        # run until there's no more time to run.  This locks down the main thread.
-        # TODO consider if we should auto shutdown or pause if out of events.
+        # Run until there's no more time to run and then shutdown.  This locks down the main thread.
         while self._current_state != SimulationState.shutting_down:
+            await asyncio.sleep(0.001)  # Allow other processes to run without adding a significant delay.
+
+            # see if the state changed and send messages as needed.
+            await self._check_state_change()
+
             # It's possible to pause the simulation while running.
             if self._current_state == SimulationState.running:
                 # None indicates to keep running indefinitely.  Else just run to the desired time.
@@ -106,22 +128,50 @@ class Simulation:
                     self._current_time += 1  # increment to the next time interval.
                     cycle_start_time = time.time()
 
-                    self._step()  # do the interval.
+                    await self._step()  # do the interval.
 
                     cycle_end_time = time.time()
                     execution_time = cycle_end_time - cycle_start_time
                     if execution_time < step_length:
-                        time.sleep(step_length - execution_time)
+                        await asyncio.sleep(step_length - execution_time)
 
-                # if not indefinite, see if we've reached the pause time.  Also want to return in these cases vs. just
-                # getting a command to pause.
+                # if not indefinite, see if we've reached the pause time.
                 elif self._run_to != -1 and self._current_time == self._run_to:
                     self.pause()
-                    return
+                    # the event has to be sent here since we are returning.
+                    await self._event_router.route(SimulationPauseEvent(sim_time=self._current_time))
+                    return  # need to return to main thread
             else:  # currently paused, so wait a second and see if we should restart.
-                time.sleep(1)
+                await asyncio.sleep(1)
 
-    def _step(self) -> None:
+        # let everyone know we are going by-by.
+        await self._event_router.route(SimulationShutdownEvent(sim_time=self._current_time))
+
+    async def _route_event(self, event: Event) -> None:
+        """
+        Routes the message, making sure it's handled as a syncrhonized send.
+        :param event: The event to route.
+        """
+        logger.debug(f"Simulation is routing event: {event.to_json()}")
+        await self._event_router.route(event=event)
+
+    async def _check_state_change(self) -> None:
+        """
+        Checks to see if the current state and previous state are different.  If so, send an appropriate event.
+        """
+        if self._previous_state == self._current_state:
+            return  # no changes
+
+        # Main state changes.  May need to capture others later.
+        if self._previous_state == SimulationState.running and self._current_state == SimulationState.paused:
+            await self._route_event(SimulationPauseEvent(sim_time=self._current_time))
+        elif self._previous_state == SimulationState.paused and self._current_state == SimulationState.running:
+            await self._route_event(SimulationResumeEvent(sim_time=self._current_time))
+
+        # set the previous to current now that it's been checked.
+        self._previous_state = self._current_state
+
+    async def _step(self) -> None:
         """
         Steps the simulation one time.
         """
@@ -131,12 +181,14 @@ class Simulation:
         logger.info(f"Simulation stepping at time {self._current_time}")
 
         # FUTURE For now just incrementing by 1, but could change in the future.
-        self._event_router.route(TimeUpdatedEvent(sim_time=self._current_time, previous_time=self._current_time - 1))
+        await self._route_event(
+            TimeUpdatedEvent(sim_time=self._current_time, previous_time=self._current_time - 1))
         before_event_properties = self._get_before_entity_properties()
         while self._current_time == self._event_queue.next_event_time:
             event = self._event_queue.next_event()
-            self._event_router.route(event)
-        self._send_entity_change_events(before_event_properties)
+            print(event.to_json())
+            await self._route_event(event)
+        await self._send_entity_change_events(before_event_properties)
 
     def _get_before_entity_properties(self) -> Dict[SimID, Dict[str, object]]:
         """
@@ -146,11 +198,11 @@ class Simulation:
         """
         before_properties = {}
         for entity in self._entities.values():
-            before_properties[entity.scarab_id] = scarab_properties(entity)
+            before_properties[getattr(entity, 'scarab_id')] = scarab_properties(entity)
 
         return before_properties
 
-    def _send_entity_change_events(self, before_properties: Dict[SimID, Dict[str, object]]) -> None:
+    async def _send_entity_change_events(self, before_properties: Dict[SimID, Dict[str, object]]) -> None:
         """
         Sends the entity change events.  This should only be called by the _step method.
         :param before_properties: The properties before the latest step.  The will be compared with current state to see
@@ -187,28 +239,40 @@ class Simulation:
 
         return changed_properties
 
+    # TODO for the pause, resume, and shutdown, have these set the state and then the _run will handle the
+    #  state change and send the event.
+
     def pause(self) -> None:
         """
         Causes the simulation to pause.
         """
-        self._event_router.route(SimulationPauseEvent(sim_time=self._current_time))
         self._current_state = SimulationState.paused
 
     def resume(self) -> None:
         """
         Causes the simulation to resume.
         """
-        self._event_router.route(SimulationResumeEvent(sim_time=self._current_time))
         self._current_state = SimulationState.running
 
     def shutdown(self) -> None:
         """
         Causes the simulation to shut down.
         """
-        self._event_router.route(SimulationShutdownEvent(sim_time=self._current_time))
         self._current_state = SimulationState.shutting_down
 
-    #####################################   Entity and event handling.  #####################################
+        # There are two scenarios when shutdown is called.
+        #  1 - the loop is running in which case it will manage the shutdown.
+        #  2 - the loop is _not_ running, in which case we have to send the shutdown event.
+        try:
+            asyncio.run(self._event_router.route(SimulationShutdownEvent(sim_time=self._current_time)))
+        except RuntimeError as e:
+            logger.debug(e)
+            pass
+
+        self._ws_server.stop_server()
+        asyncio.sleep(2)  # wait while server shuts down.
+
+    # ####################################   Entity and event handling.  #####################################
 
     _immediate_events = [ScarabEventType.SIMULATION_START, ScarabEventType.SIMULATION_PAUSE,
                          ScarabEventType.SIMULATION_RESUME, ScarabEventType.SIMULATION_SHUTDOWN,
@@ -218,11 +282,11 @@ class Simulation:
         """
         Sends an event to interested entity based on their declarations.  Time updated and simulation events are sent
         immediately.  All other events are sent at the next time.
-        :param Event:  The event to send.
+        :param event:  The event to send.
         """
         if event.event_name in Simulation._immediate_events:
             event.sim_time = self._current_time
-            self._event_router.route(event)
+            self._route_event(event)
 
         else:
             # If there is no sim time provided, send in the next cycle.
@@ -237,6 +301,8 @@ class Simulation:
         :param entity: The entity to add.  Entities can technically be any class, but will have the scarab attributes.
         """
         assert hasattr(entity, "scarab_id")  # basic check that this is an entity.
+
+        logger.debug(f'Adding entity: {entity}')
 
         entity.scarab_id = new_sim_id()
         self._entities[entity.scarab_id] = entity
