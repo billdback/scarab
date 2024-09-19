@@ -7,6 +7,8 @@ import json
 from typing import Any, Dict, List
 from types import SimpleNamespace
 
+from scarab.framework.utils import serialize
+
 
 # Names of standard events.
 class ScarabEventType(StrEnum):
@@ -43,11 +45,15 @@ class Event:
         """Converts the event to JSON.  All public attributes will be returned."""
         # Use vars(self) to get the public attributes into a dictionary
         data_dict = {k: v for k, v in vars(self).items() if not k.startswith('_')}
-        return data_dict
+        return serialize(data_dict)
 
     def __str__(self):
         """Returns the string representation of the event as a JSON string."""
-        return json.dumps(self.to_json(), sort_keys=True)
+        try:
+            return json.dumps(self.to_json(), sort_keys=True)
+        except TypeError as te:
+            print(str(te))
+            return f"Unable to convert {self.event_name} to JSON string"
 
 
 class EntityCreatedEvent(Event):

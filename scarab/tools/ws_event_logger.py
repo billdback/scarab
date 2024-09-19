@@ -18,29 +18,39 @@ async def receive_events(server_url) -> None:
     :param server_url: The URL or IP of the server.
     """
     shutdown = False
+    retries = 0
+    max_retries = 10
 
-    async with websockets.connect(server_url) as websocket:
+    while retries < max_retries and not shutdown:
+        try:
+            print(f'connecting to server (try {retries} of {max_retries})')
+            async with websockets.connect(server_url) as websocket:
 
-        while not shutdown:
-            try:
+                while not shutdown:
+                    try:
 
-                # get and log events
-                response = await websocket.recv()
-                event = json.loads(response)
-                print(json.dumps(event))
+                        # get and log events
+                        response = await websocket.recv()
+                        event = json.loads(response)
+                        print(json.dumps(event))
 
-                # check for simulation shutdown.
-                if event.get('event_name', None) == ScarabEventType.SIMULATION_SHUTDOWN.value:
-                    shutdown = True
+                        # check for simulation shutdown.
+                        if event.get('event_name', None) == ScarabEventType.SIMULATION_SHUTDOWN.value:
+                            shutdown = True
 
-            # handle non-event messages
-            except JSONDecodeError:
-                print(f"Unexpected message (not JSON): {event}")
+                    # handle non-event messages
+                    except JSONDecodeError:
+                        print(f"Unexpected message (not JSON): {event}")
 
-            # check for server closed.
-            except websockets.ConnectionClosed:
-                print("Connection closed by server.")
-                shutdown = True
+                    # check for server closed.
+                    except websockets.ConnectionClosed:
+                        print("Connection closed by server.")
+                        shutdown = True
+
+        except OSError as oserr:
+            print(f"Error connecting to the server: {oserr}")
+            retries += 1
+            await asyncio.sleep(3)
 
 
 if __name__ == "__main__":

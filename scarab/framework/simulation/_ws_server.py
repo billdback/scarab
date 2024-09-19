@@ -4,6 +4,7 @@ Web socket server the simulation uses to send events to web socket connections.
 import asyncio
 import json
 import logging
+from json import JSONDecodeError
 
 import websockets
 
@@ -31,6 +32,7 @@ class WSEventServer:
         self._clients = set()
         self._server = None
         self._is_running = False
+        self._stop_event = asyncio.Event()
 
     @property
     def is_running(self):
@@ -51,9 +53,24 @@ class WSEventServer:
             self._clients.remove(websocket)
 
     async def start_server(self):
+        """Starts the server and then returns."""
+        if not self._is_running:
+            self._stop_event.clear()  # Reset the stop event
+            self._server_task = asyncio.create_task(self._run_server())
+            logger.debug("Server task created and started")
+        else:
+            logger.debug("Server is already running")
+
+    async def _run_server(self):
+        """Runs the server"""
         logger.debug(f"Starting server on {self._host}:{self._port}")
         self._is_running = True
-        self._server = await websockets.serve(self._handle_client, self._host, self._port)
+        # self._server = await websockets.serve(self._handle_client, self._host, self._port)
+        async with websockets.serve(self._handle_client, self._host, self._port) as server:
+            self._server = server
+            logger.debug(f"Server started on {self._host}:{self._port}")
+            await self._stop_event.wait()
+
         logger.debug(f"Server started on {self._host}")
 
     async def stop_server(self):
@@ -66,17 +83,22 @@ class WSEventServer:
         logger.debug("All clients disconnected.")
 
         # Close server
-        if self._server:
-            self._server.close()
-            await self._server.wait_closed()
+        self._stop_event.set()  # Signal the server to stop
+        await self._server.wait_closed()  # Wait until the server is fully closed
+        self._is_running = False
+
         logger.debug("Server shut down.")
 
     async def send_event(self, event: Event):
         logger.debug(f'  WSEventServer: Sending event: {event.event_name}')
+        print(f'  WSEventServer: Sending event: {event.event_name}')
         if self._clients:
-            message = json.dumps(event.to_json())
-            await asyncio.gather(*(client.send(message) for client in self._clients))
-            logger.debug(f"Sent message to all clients: {message}")
+            try:
+                message = json.dumps(event.to_json())
+                await asyncio.gather(*(client.send(message) for client in self._clients))
+                logger.debug(f"Sent message to all clients: {message}")
+            except TypeError as err:
+                logger.error(f'Unable to send {event}: {err}')
         else:
             logger.debug("No clients connected.")
 

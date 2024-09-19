@@ -112,3 +112,61 @@ def test_time_update_event():
     evt = TimeUpdatedEvent(sim_time=4)
     assert evt.sim_time == 4
     assert evt.previous_time == 3
+
+
+def test_convert_to_from_json():
+    """Test converting to/from JSON."""
+    # TODO add code to test.  The main issue is that SimpleNamespace can't be converted to JSON so the events that
+    #  use it dont' work.
+    entity = TestEntity2()
+
+    # Base event
+    evt = Event(event_name='test-event', sim_time=1)
+    j = evt.to_json()
+    assert j['event_name'] == 'test-event'
+    assert j['sim_time'] == 1
+
+    # Entity events
+    evt = EntityCreatedEvent(entity_props=scarab_properties(entity))
+    j = evt.to_json()
+    assert j['event_name'] == ScarabEventType.ENTITY_CREATED.value
+    assert j['entity']['scarab_name'] == 'test2'
+
+    evt = EntityChangedEvent(entity_props=scarab_properties(entity), changed_props=['prop3'])
+    j = evt.to_json()
+    assert j['event_name'] == ScarabEventType.ENTITY_CHANGED.value
+    assert j['entity']['scarab_name'] == 'test2'
+    assert j['changed_properties'] == ['prop3']
+
+    evt = EntityDestroyedEvent(entity_props=scarab_properties(entity))
+    j = evt.to_json()
+    assert j['event_name'] == ScarabEventType.ENTITY_DESTROYED.value
+    assert j['entity']['scarab_name'] == 'test2'
+
+    # Simulation events
+    evt = SimulationStartEvent(sim_time=1)
+    j = evt.to_json()
+    assert j['event_name'] == ScarabEventType.SIMULATION_START.value
+    assert j['sim_time'] == 1
+
+    evt = SimulationPauseEvent(sim_time=2)
+    j = evt.to_json()
+    assert j['event_name'] == ScarabEventType.SIMULATION_PAUSE.value
+    assert j['sim_time'] == 2
+
+    evt = SimulationResumeEvent(sim_time=3)
+    j = evt.to_json()
+    assert j['event_name'] == ScarabEventType.SIMULATION_RESUME.value
+    assert j['sim_time'] == 3
+
+    evt = SimulationShutdownEvent(sim_time=4)
+    j = evt.to_json()
+    assert j['event_name'] == ScarabEventType.SIMULATION_SHUTDOWN.value
+    assert j['sim_time'] == 4
+
+    # Time update event
+    evt = TimeUpdatedEvent(sim_time=2, previous_time=1)
+    j = evt.to_json()
+    assert j['event_name'] == ScarabEventType.TIME_UPDATED.value
+    assert j['sim_time'] == 2
+    assert j['previous_time'] == 1

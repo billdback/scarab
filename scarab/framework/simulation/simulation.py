@@ -65,6 +65,28 @@ class Simulation:
         """Returns the current state of the simulation"""
         return self._current_state
 
+    def __enter__(self):
+        """
+        Context manager for the simulation.
+        """
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        Ends the context, making sure the shutdown message is sent and the web socket server is closed.
+        """
+
+        print(f"Shutting down via exit")
+
+        # the main loop should be done at this point.
+        try:
+            asyncio.run(self._event_router.route(SimulationShutdownEvent(sim_time=self._current_time)))
+            asyncio.run(self._ws_server.stop_server())
+            print(f"called stop_server")
+        except RuntimeError as e:
+            logger.debug(e)
+            pass
+
     def run(self, nbr_steps=None, step_length=0) -> None:
         """
         Runs the simulation for the number of steps (or until there are no more events in the queue).
@@ -105,7 +127,7 @@ class Simulation:
 
         if self._current_time == 0:  # just starting for the first time.
             await self._route_event(SimulationStartEvent(sim_time=self._current_time))
-            self._current_state = SimulationState.running # have to switch to running.
+            self._current_state = SimulationState.running  # have to switch to running.
         else:  # must be resuming - changes will be caught below.
             pass
 
@@ -259,18 +281,6 @@ class Simulation:
         Causes the simulation to shut down.
         """
         self._current_state = SimulationState.shutting_down
-
-        # There are two scenarios when shutdown is called.
-        #  1 - the loop is running in which case it will manage the shutdown.
-        #  2 - the loop is _not_ running, in which case we have to send the shutdown event.
-        try:
-            asyncio.run(self._event_router.route(SimulationShutdownEvent(sim_time=self._current_time)))
-        except RuntimeError as e:
-            logger.debug(e)
-            pass
-
-        self._ws_server.stop_server()
-        asyncio.sleep(2)  # wait while server shuts down.
 
     # ####################################   Entity and event handling.  #####################################
 
