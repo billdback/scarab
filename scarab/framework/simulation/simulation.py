@@ -41,7 +41,7 @@ class Simulation:
     Simulation class for managing entities and events.
     """
 
-    def __init__(self):
+    def __init__(self, ws_host: str = 'localhost', ws_port: int = 1234):
         """
         Creates a new simulation.
         """
@@ -52,7 +52,7 @@ class Simulation:
 
         self._current_time = 0
         self._run_to = -1  # used to determine how long to run.
-        self._ws_server = WSEventServer(self)
+        self._ws_server = WSEventServer(sim=self, host=ws_host, port=ws_port)
 
         # Technically has entities, but entities are simply objects with scarab_ properties.
         self._entities: Dict[SimID, object] = {}

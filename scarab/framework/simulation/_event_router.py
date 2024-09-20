@@ -26,7 +26,7 @@ class EventRouter:
     entities.  Finally, entities can be removed.
     """
 
-    def __init__(self, ws_server: WSEventServer):
+    def __init__(self, ws_server: WSEventServer = None):
         """
         Create a new EventRouter that will have the handlers for the entity.
 
@@ -37,7 +37,7 @@ class EventRouter:
         EntityCreatedEvent, the router stores in a dictionary based on the entity name (str).  Then the list contains
         the entity and handler to call.  This allows the router to invoke the method on the instance.  It also makes it
         possible to easily delete the entity when it's destroyed.
-        :param ws_server: The websocket server to send events to.
+        :param ws_server: The websocket server to send events to.  If not provided, it won't be used.
         """
 
         # Entity related events.
@@ -246,6 +246,14 @@ class EventRouter:
         # Generic (named) events.
         self._named_event_handlers = {key: [item for item in value if item.entity.scarab_id != entity.scarab_id] for
                                       key, value in self._named_event_handlers.items()}
+
+    def sync_route(self, event: Event) -> None:
+        """
+        Routes the event synchronously.  This is provided because the normal route method is async.  Mostly this is
+        to enable easier testing and should not be used for other purposes.  The simulation will call the async version.
+        :param event: The event to route.
+        """
+        asyncio.run(self.route(event=event))
 
     async def route(self, event: Event) -> None:
         """
