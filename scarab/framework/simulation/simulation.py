@@ -76,43 +76,48 @@ class Simulation:
         Ends the context, making sure the shutdown message is sent and the web socket server is closed.
         """
 
-        print(f"Shutting down via exit")
+        logger.debug(f"Shutting down via exit")
 
         # the main loop should be done at this point.
         try:
             asyncio.run(self._event_router.route(SimulationShutdownEvent(sim_time=self._current_time)))
             asyncio.run(self._ws_server.stop_server())
-            print(f"called stop_server")
+            logger.debug(f"called stop_server")
         except RuntimeError as e:
             logger.debug(e)
             pass
 
-    def run(self, nbr_steps=None, step_length=0) -> None:
+    def run(self, nbr_steps: int = None, step_length: int = 0, start_paused: bool = False) -> None:
         """
         Runs the simulation for the number of steps (or until there are no more events in the queue).
         :param nbr_steps: If provided (i.e. positive number), will only run this many steps and then shutdown.
         :param step_length: The (approximate) length of a given step in seconds.  It may not be exact.
+        :param start_paused: If True, the run loop will start, but the simulation will be paused and wait for an event
+        to run.
         """
-        asyncio.run(self._run(nbr_steps, step_length))
+        asyncio.run(self._run(nbr_steps, step_length, start_paused))
 
-    async def _run(self, nbr_steps, step_length) -> None:
+    async def _run(self, nbr_steps: int = None, step_length: int = 0, start_paused: bool = False) -> None:
         """
         Kicks off the simulation and the socket server.
         :param nbr_steps: If provided (i.e. positive number), will only run this many steps and then shutdown.
         :param step_length: The (approximate) length of a given step in seconds.  It may not be exact.
+        :param start_paused: If True, the run loop will start, but the simulation will be paused and wait for an event
+        to run.
         """
 
         await self._ws_server.start_server()
-        # NOT SURE IF NEEDED - await asyncio.sleep(2)  # Make sure the server has time to start handling connections.
 
-        await self._run_steps(nbr_steps, step_length)
+        await self._run_steps(nbr_steps, step_length, start_paused)
         await self._ws_server.stop_server()
 
-    async def _run_steps(self, nbr_steps=None, step_length=0) -> None:
+    async def _run_steps(self, nbr_steps: int = None, step_length: int = 0, start_paused: bool = False) -> None:
         """
         Runs the simulation for the number of steps (or until there are no more events in the queue).
         :param nbr_steps: If provided (i.e. positive number), will only run this many steps and then shutdown.
         :param step_length: The (approximate) length of a given step in seconds.  It may not be exact.
+        :param start_paused: If True, the run loop will start, but the simulation will be paused and wait for an event
+        to run.
         """
         logger.info(f'running simulation {nbr_steps} steps')
         if nbr_steps and nbr_steps <= 0:
@@ -125,14 +130,18 @@ class Simulation:
         if self._current_state == SimulationState.shutting_down:
             raise RuntimeError(f"Attempting to run a simulation after shutdown.")
 
-        if self._current_time == 0:  # just starting for the first time.
-            await self._route_event(SimulationStartEvent(sim_time=self._current_time))
-            self._current_state = SimulationState.running  # have to switch to running.
-        else:  # must be resuming - changes will be caught below.
-            pass
+        self._current_state = SimulationState.paused if start_paused else SimulationState.running
 
-        # told to run, so set the state.
-        self._current_state = SimulationState.running
+        # The simulation can start running in a paused state, which means that it's ready to run, but waiting for a
+        # command.  This is useful for scenarios where the controller is an external app.  Note that if nothing
+        # ever starts the simulation, it will be looping forever.
+        if start_paused:
+            await self._route_event(SimulationPauseEvent(sim_time=self._current_time))
+        else:
+            if self._current_time == 0:  # just starting for the first time.
+                await self._route_event(SimulationStartEvent(sim_time=self._current_time))
+            else:  # must be resuming - changes will be caught below.
+                pass
 
         # Run until there's no more time to run and then shutdown.  This locks down the main thread.
         while self._current_state != SimulationState.shutting_down:

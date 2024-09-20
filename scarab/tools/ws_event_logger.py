@@ -56,7 +56,7 @@ async def receive_events(server_url) -> None:
 if __name__ == "__main__":
     # get server_url and port as command line arguments
     server_url = sys.argv[1] if len(sys.argv) > 1 else "localhost"
-    server_port = str(sys.argv[2]) if len(sys.argv) > 2 else 12345
+    server_port = str(sys.argv[2]) if len(sys.argv) > 2 else 1234
     ws_url = f"ws://{server_url}:{server_port}"
 
     # run until shutdown.

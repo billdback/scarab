@@ -29,8 +29,8 @@ class SimpleEntity:
         self.number_entities += 1
 
 
-with Simulation() as sim:
+with Simulation(ws_host='localhost', ws_port=1234) as sim:
     for i in range(0, 10):
         sim.add_entity(SimpleEntity(name="basic-entity" + str(i)))
 
-    sim.run(nbr_steps=5, step_length=3)
+    sim.run(nbr_steps=10, step_length=5)

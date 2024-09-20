@@ -4,11 +4,10 @@ Web socket server the simulation uses to send events to web socket connections.
 import asyncio
 import json
 import logging
-from json import JSONDecodeError
-
 import websockets
 
-from scarab.framework.events import Event
+from scarab.framework.entity import scarab_properties
+from scarab.framework.events import Event, EntityCreatedEvent
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -43,6 +42,9 @@ class WSEventServer:
         # Register client connection
         self._clients.add(websocket)
         logger.debug(f"Client connected: {websocket.remote_address}")
+
+        await self._send_all_entities(websocket)
+
         try:
             async for message in websocket:
                 await self._handle_client_message(message)
@@ -51,6 +53,22 @@ class WSEventServer:
         finally:
             # Unregister client
             self._clients.remove(websocket)
+
+    async def _send_all_entities(self, websocket: websockets) -> None:
+        """
+        When new clients connect, we want to send all the current entities.
+        :param websocket: The websocket that just connected.
+        """
+
+        for e in self._sim_owner._entities.values():
+            # Sending as create entity messages since this is new to the client.  Note that reconnect must be handled
+            # by the client.
+            logger.debug(f"Sending entity to new connection: {e.__class__.__name__}")
+            evt = EntityCreatedEvent(entity_props=scarab_properties(e), sim_time=self._sim_owner._current_time)
+            try:
+                await websocket.send(json.dumps(evt.to_json()))
+            except Exception as ex:
+                logger.error(f"Error sending {evt} to {websocket.remote_address}: {ex}")
 
     async def start_server(self):
         """Starts the server and then returns."""
@@ -84,7 +102,8 @@ class WSEventServer:
 
         # Close server
         self._stop_event.set()  # Signal the server to stop
-        await self._server.wait_closed()  # Wait until the server is fully closed
+        if self._server:
+            await self._server.wait_closed()  # Wait until the server is fully closed
         self._is_running = False
 
         logger.debug("Server shut down.")

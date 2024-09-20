@@ -1,9 +1,10 @@
 """
 Tests the simulation and related functionality.
 """
-import asyncio
 
 import pytest
+import threading
+import time
 
 from scarab.framework.simulation.simulation import Simulation, SimulationState
 from scarab.test.framework.test_items import TestEntity1, TestEntity2
@@ -41,6 +42,28 @@ def test_entity_state_change_events():
         sim.add_entity(entity2)
 
         sim.run(2)  # should be sufficient to get updates sent.
+
+        assert "test_entity_2" in entity2.entity1_changed_props
+        assert "nbr_test2_entities" in entity2.entity1_changed_props
+
+
+def test_starting_in_pause_state():
+    """
+    Tests that we can run the simulation from a paused state.
+    """
+    with Simulation() as sim:
+        entity1 = TestEntity1()
+        sim.add_entity(entity1)
+        entity2 = TestEntity2()
+        sim.add_entity(entity2)
+
+        # running in a thread so it will start in pause, be told to run, then end.
+        thread = threading.Thread(target=sim.run, args=(2, 0, True))
+        thread.start()
+        time.sleep(1)  # have to wait for the thread to start.  Normally the resume would come externally.
+
+        sim.resume()
+        thread.join()
 
         assert "test_entity_2" in entity2.entity1_changed_props
         assert "nbr_test2_entities" in entity2.entity1_changed_props
