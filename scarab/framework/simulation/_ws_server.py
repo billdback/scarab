@@ -126,9 +126,14 @@ class WSEventServer:
         Handles messages from the websocket clients.
         :param message: The message that the client sent.
         """
-        # TODO handle the messages.  Initially these will be control messages, but they can be extended to
-        #  handle events.
-        try:
-            logger.debug(f'Message from client: {message}')
-        except json.JSONDecodeError:
-            print("Received invalid JSON message.")
+        logger.debug(f'Message from client: {message}')
+
+        # sim should be already running, so start is just resume.
+        if message == 'start' or message == 'resume':
+            self._sim_owner.resume()
+        elif message == 'pause':
+            self._sim_owner.pause()
+        elif message == 'shutdown':
+            self._sim_owner.shutdown()
+        else:
+            print(f'Unknown command {message}')

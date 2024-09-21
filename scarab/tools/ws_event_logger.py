@@ -2,9 +2,9 @@
 This event logger will connect to the simulation web socket server and listen for events and then log to the console.
 """
 
+import argparse
 import asyncio
 import json
-import sys
 from json import JSONDecodeError
 
 import websockets
@@ -18,12 +18,12 @@ async def receive_events(server_url) -> None:
     :param server_url: The URL or IP of the server.
     """
     shutdown = False
-    retries = 0
+    retry_count = 0
     max_retries = 10
 
-    while retries < max_retries and not shutdown:
+    while retry_count < max_retries and not shutdown:
         try:
-            print(f'connecting to server (try {retries} of {max_retries})')
+            print(f'connecting to server (try {retry_count} of {max_retries})')
             async with websockets.connect(server_url) as websocket:
 
                 while not shutdown:
@@ -47,21 +47,27 @@ async def receive_events(server_url) -> None:
                         print("Connection closed by server.")
                         shutdown = True
 
-        except OSError as oserr:
-            print(f"Error connecting to the server: {oserr}")
-            retries += 1
-            await asyncio.sleep(3)
+        except OSError:
+            retry_count += 1
+            if retry_count < max_retries:
+                print("Retrying in 3 seconds...")
+                await asyncio.sleep(3)
+            else:
+                print("Max retries reached. Exiting.")
+                return
 
 
 if __name__ == "__main__":
     # get server_url and port as command line arguments
-    server_url = sys.argv[1] if len(sys.argv) > 1 else "localhost"
-    server_port = str(sys.argv[2]) if len(sys.argv) > 2 else 1234
-    ws_url = f"ws://{server_url}:{server_port}"
+    parser = argparse.ArgumentParser(description='Connect to a WebSocket and send commands.')
+    parser.add_argument('--host', default='localhost', help='WebSocket host (default: localhost)')
+    parser.add_argument('--port', type=int, default=1234, help='WebSocket port (default: 1234)')
+    args = parser.parse_args()
 
-    # run until shutdown.
+    ws_url = f"ws://{args.host}:{args.port}"
+
+    # run until shutdown or interrupt.
     try:
         asyncio.run(receive_events(ws_url))
-    except OSError as e:
-        print("Connection failed. Error: " + str(e))
-        print("Check that the server is running and the client can connect.")
+    except KeyboardInterrupt:
+        print('^C received, shutting down the logger.')
