@@ -1,3 +1,11 @@
+"""
+Copyright (c) 2024 William D Back
+
+This file is part of Scarab licensed under the MIT License.
+For full license text, see the LICENSE file in the project root.
+
+This file is a simple command line controller for simulations.
+"""
 import argparse
 import asyncio
 import websockets
@@ -7,6 +15,7 @@ from scarab.framework.events import SimulationStartEvent, SimulationPauseEvent, 
     SimulationShutdownEvent
 
 valid_commands = {
+    'help': 'shows the help message',
     'start': 'starts simulation execution',
     'pause': 'pauses simulation execution',
     'resume': 'resumes simulation execution',
@@ -37,7 +46,7 @@ async def send_commands(websocket):
         while True:
             command = await aioconsole.ainput('sim command > ')
 
-            if command == 'help':
+            if command == 'help' or command == 'h':
                 await show_help()
             elif command == 'start':
                 await websocket.send(command)

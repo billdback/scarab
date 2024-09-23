@@ -1,7 +1,13 @@
 """
+Copyright (c) 2024 William D Back
+
+This file is part of Scarab licensed under the MIT License.
+For full license text, see the LICENSE file in the project root.
+
 The actual simulation class.
 """
 import asyncio
+from datetime import datetime
 from enum import StrEnum
 import logging
 import time
@@ -12,14 +18,16 @@ from ._event_queue import OrderedEventQueue
 from ._event_router import EventRouter
 from ._ws_server import WSEventServer
 
-from scarab.framework.entity import Entity, scarab_properties
-from scarab.framework.events import Event, EntityCreatedEvent, EntityDestroyedEvent, EntityChangedEvent, \
+from ..entity import Entity, scarab_properties
+from ..events import Event, EntityCreatedEvent, EntityDestroyedEvent, EntityChangedEvent, \
     ScarabEventType, TimeUpdatedEvent, \
     SimulationStartEvent, SimulationPauseEvent, SimulationResumeEvent, SimulationShutdownEvent
 
+from ..event_loggers import BaseLogger, FileLogger
+
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger.setLevel(logging.DEBUG)
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
+logger.setLevel(logging.ERROR)
 
 SimID = str
 
@@ -41,9 +49,13 @@ class Simulation:
     Simulation class for managing entities and events.
     """
 
-    def __init__(self, ws_host: str = 'localhost', ws_port: int = 1234):
+    def __init__(self, event_logger: BaseLogger = None, ws_host: str = 'localhost', ws_port: int = 1234):
         """
         Creates a new simulation.
+        :param event_logger: The logger to use if any.  If not provided, a default file logger will be used
+        that consists of the datetime in the current location.
+        :param ws_host: The host for the websocket server.
+        :param ws_port: The port for the websocket server.
         """
 
         # Track state including changes.
@@ -52,13 +64,19 @@ class Simulation:
 
         self._current_time = 0
         self._run_to = -1  # used to determine how long to run.
+
         self._ws_server = WSEventServer(sim=self, host=ws_host, port=ws_port)
 
         # Technically has entities, but entities are simply objects with scarab_ properties.
         self._entities: Dict[SimID, object] = {}
 
         self._event_queue = OrderedEventQueue()
-        self._event_router = EventRouter(self._ws_server)
+
+        if event_logger is None:
+            # default to a file logger that logs all events.
+            event_logger = FileLogger(datetime.now().strftime("%Y.%m.%d-%H.%M.log"))
+
+        self._event_router = EventRouter(event_logger, self._ws_server)
 
     @property
     def state(self) -> SimulationState:
@@ -180,7 +198,7 @@ class Simulation:
 
     async def _route_event(self, event: Event) -> None:
         """
-        Routes the message, making sure it's handled as a syncrhonized send.
+        Routes the message, making sure it's handled as a synchronized send.
         :param event: The event to route.
         """
         logger.debug(f"Simulation is routing event: {event.to_json()}")
@@ -236,8 +254,8 @@ class Simulation:
     async def _send_entity_change_events(self, before_properties: Dict[SimID, Dict[str, object]]) -> None:
         """
         Sends the entity change events.  This should only be called by the _step method.
-        :param before_properties: The properties before the latest step.  The will be compared with current state to see
-        what changed and then update events will be queued..
+        :param before_properties: The properties before the latest step.  This will be compared with current state to
+        see what changed and then update events will be queued.
         """
         for entityID, old_properties in before_properties.items():
             entity = self._entities.get(entityID, None)  # it might be possible to not get an entity if it was deleted

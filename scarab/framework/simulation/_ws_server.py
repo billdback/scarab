@@ -1,4 +1,9 @@
 """
+Copyright (c) 2024 William D Back
+
+This file is part of Scarab licensed under the MIT License.
+For full license text, see the LICENSE file in the project root.
+
 Web socket server the simulation uses to send events to web socket connections.
 """
 import asyncio
@@ -10,13 +15,13 @@ from scarab.framework.entity import scarab_properties
 from scarab.framework.events import Event, EntityCreatedEvent
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger.setLevel(logging.DEBUG)
+logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
+logger.setLevel(logging.WARNING)
 
 
 class WSEventServer:
 
-    # TODO add support to the sim to specify ws URL.
+    # noinspection PyUnresolvedReferences
     def __init__(self, sim: 'Simulation', host='localhost', port=12345):
         """
         Creates a new web socket event server for sending and receiving events.
@@ -38,6 +43,7 @@ class WSEventServer:
         """Returns true if the server is running"""
         return self._is_running
 
+    # noinspection PyUnusedLocal
     async def _handle_client(self, websocket, path):
         # Register client connection
         self._clients.add(websocket)
@@ -60,10 +66,12 @@ class WSEventServer:
         :param websocket: The websocket that just connected.
         """
 
+        # noinspection PyProtectedMember
         for e in self._sim_owner._entities.values():
             # Sending as create entity messages since this is new to the client.  Note that reconnect must be handled
             # by the client.
             logger.debug(f"Sending entity to new connection: {e.__class__.__name__}")
+            # noinspection PyProtectedMember
             evt = EntityCreatedEvent(entity_props=scarab_properties(e), sim_time=self._sim_owner._current_time)
             try:
                 await websocket.send(json.dumps(evt.to_json()))
@@ -74,7 +82,8 @@ class WSEventServer:
         """Starts the server and then returns."""
         if not self._is_running:
             self._stop_event.clear()  # Reset the stop event
-            self._server_task = asyncio.create_task(self._run_server())
+            # noinspection PyUnusedLocal
+            task = asyncio.create_task(self._run_server())
             logger.debug("Server task created and started")
         else:
             logger.debug("Server is already running")
@@ -83,7 +92,7 @@ class WSEventServer:
         """Runs the server"""
         logger.debug(f"Starting server on {self._host}:{self._port}")
         self._is_running = True
-        # self._server = await websockets.serve(self._handle_client, self._host, self._port)
+        # noinspection PyTypeChecker
         async with websockets.serve(self._handle_client, self._host, self._port) as server:
             self._server = server
             logger.debug(f"Server started on {self._host}:{self._port}")
