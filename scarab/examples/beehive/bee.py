@@ -1,20 +1,44 @@
 """
 Represents the bee entity.
 """
-from . types import BeeType
-from scarab.framework.entity import Entity
+from .beesim_types import BeeType, HiveType
+
+from scarab.framework.entity import Entity, entity_created, entity_changed
+from scarab.framework.events import EntityCreatedEvent, EntityChangedEvent
 
 
 @Entity(name="bee", conforms_to=BeeType)
-class BasicBee:
+class Bee:
+    """Description of Bee."""
 
-    def __init__(self, b: bool = False, f: bool = False):
-        """Basic Bee that conforms with the Bee interface."""
-        self.isBuzzing = b
-        self.isFlapping = f
+    def __init__(self, low_temp: float, high_temp: float):
+        """Creates an instance of Bee, setting low_temp and high_temp."""
+        self.low_temp = low_temp
+        self.high_temp = high_temp
+        self.isBuzzing = False
+        self.isFlapping = False
 
-    def __str__(self):
-        res = "Basic Bee:\n"
-        res += f"  isBuzzing: {'True' if self.isBuzzing else 'False'}\n"
-        res += f"  isFlapping: {'True' if self.isFlapping else 'False'}\n"
-        return res
+    @entity_created(entity_name='hive')
+    def hive_created(self, ce: EntityCreatedEvent):
+        """Called when a 'hive' entity is created."""
+        self._set_state(hive=ce.entity)
+
+    @entity_changed(entity_name='hive')
+    def hive_changed(self, ue: EntityChangedEvent):
+        """Called when a 'hive' entity is changed."""
+        self._set_state(hive=ue.entity)
+
+    def _set_state(self, hive: HiveType) -> None:
+        """
+        Sets the state of the bee depending on the hive temperature.
+        :param hive: The hive entity.
+        """
+        if hive.current_temp < self.low_temp:
+            self.isBuzzing = True
+            self.isFlapping = False
+        elif hive.current_temp > self.high_temp:
+            self.isBuzzing = False
+            self.isFlapping = True
+        else:  # in case either was True before.
+            self.isBuzzing = False
+            self.isFlapping = False

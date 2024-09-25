@@ -1,5 +1,7 @@
 """
 Defines the types for the entities.
+
+WARNING: Trying to name a file `types` can cause errors when importing.
 """
 from dataclasses import dataclass
 
@@ -23,6 +25,8 @@ class HiveType:
     Sim name: hive
     """
     number_of_bees: int = 0
+    number_of_bees_flapping: int = 0
+    number_of_bees_buzzing: int = 0
     current_temp: float = 0.0
 
 
@@ -33,4 +37,5 @@ class OutsideTempType:
     Sim name: outside-temp
     """
     current_temp: float = 0.0
+    time_of_date: int = 0.0 # minute of the day.
 
