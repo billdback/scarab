@@ -41,7 +41,7 @@ def run_sim() -> None:
             bee = Bee(low_temp=min_temps[_], high_temp=max_temps[_])
             sim.add_entity(bee)
 
-        sim.run(nbr_steps=100, step_length=2)
+        sim.run(nbr_steps=100, step_length=3)
 
 
 if __name__ == "__main__":

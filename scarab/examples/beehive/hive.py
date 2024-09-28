@@ -32,7 +32,7 @@ class Hive:
         self.number_of_bees_flapping = 0
         self.number_of_bees_buzzing = 0
         self.current_temp = 0.0
-        self.bee_states = {}  # Dictionary to keep track of bee states
+        self.bees = {}  # Dictionary to keep track of bees
         self.outside_temp = None  # Will hold the current outside temperature
 
         self.buzzing_impact = 0.1  # warm the hive
@@ -42,54 +42,56 @@ class Hive:
     def bee_created(self, ce: EntityCreatedEvent):
         """Called when a 'bee' entity is created."""
         self.number_of_bees += 1
-        bee_id = ce.scarab_id
-        bee_state = ce.entity
-        self.bee_states[bee_id] = bee_state
+        bee_id = ce.entity.scarab_id
+        bee = ce.entity
+        self.bees[bee_id] = ce.entity
 
         # Update counts if the bee is buzzing or flapping at creation
-        if bee_state.isFlapping:
+        if bee.isFlapping:
             self.number_of_bees_flapping += 1
-        if bee_state.isBuzzing:
+        if bee.isBuzzing:
             self.number_of_bees_buzzing += 1
 
     @entity_changed(entity_name='bee')
     def bee_changed(self, ue: EntityChangedEvent):
         """Called when a 'bee' entity is changed."""
-        bee_id = ue.scarab_id
-        old_state = self.bee_states.get(bee_id)
-        new_state = ue.new_state
+        bee_id = ue.entity.scarab_id
+        old_bee = self.bees.get(bee_id)
+        updated_bee = ue.entity
+        self.bees[bee_id] = updated_bee
 
         # Update flapping count
-        if old_state.isFlapping != new_state.isFlapping:
-            if new_state.isFlapping:
+        if old_bee.isFlapping != updated_bee.isFlapping:
+            if updated_bee.isFlapping:
                 self.number_of_bees_flapping += 1
             else:
                 self.number_of_bees_flapping -= 1
 
         # Update buzzing count
-        if old_state.isBuzzing != new_state.isBuzzing:
-            if new_state.isBuzzing:
+        if old_bee.isBuzzing != updated_bee.isBuzzing:
+            if updated_bee.isBuzzing:
                 self.number_of_bees_buzzing += 1
             else:
                 self.number_of_bees_buzzing -= 1
 
         # Update stored state
-        self.bee_states[bee_id] = new_state
+        self.bees[bee_id] = updated_bee
 
     @entity_destroyed(entity_name='bee')
     def bee_destroyed(self, de: EntityDestroyedEvent):
         """Called when a 'bee' entity is destroyed."""
-        bee_id = de.entity_id
-        bee_state = self.bee_states.pop(bee_id, None)
-        if bee_state:
+        bee_id = de.entity.entity_id
+        bee = self.bees.pop(bee_id, None)
+
+        if bee:
             self.number_of_bees -= 1
 
             # Update flapping count
-            if bee_state.isFlapping:
+            if bee.isFlapping:
                 self.number_of_bees_flapping -= 1
 
             # Update buzzing count
-            if bee_state.isBuzzing:
+            if bee.isBuzzing:
                 self.number_of_bees_buzzing -= 1
 
             # Optionally update the hive temperature
