@@ -235,7 +235,6 @@ class Simulation:
         before_event_properties = self._get_before_entity_properties()
         while self._current_time == self._event_queue.next_event_time:
             event = self._event_queue.next_event()
-            print(event.to_json())
             await self._route_event(event)
         await self._send_entity_change_events(before_event_properties)
 

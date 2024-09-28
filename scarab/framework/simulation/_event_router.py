@@ -18,7 +18,8 @@ from typing import Dict, List
 from ._ws_server import WSEventServer
 from ..types import EventHandler
 from ..events import Event, ScarabEventType
-from ..event_loggers import BaseLogger, FileLogger
+from ..event_loggers import BaseLogger
+from ..entity import scarab_properties
 
 logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -341,7 +342,7 @@ class EventRouter:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
                 h.handler(event)
             except Exception as e:
-                logger.error(f"Error handling event {event} for entity {h.entity}: {e}")
+                self._log_event_handling_error(event=event, entity=h.entity, ex=e)
 
     def _handle_entity_updated(self, event: Event) -> None:
         """
@@ -358,7 +359,7 @@ class EventRouter:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
                 h.handler(event)
             except Exception as e:
-                logger.error(f"Error handling event {event} for entity {h.entity}: {e}")
+                self._log_event_handling_error(event=event, entity=h.entity, ex=e)
 
     def _handle_entity_destroyed(self, event: Event) -> None:
         """
@@ -375,7 +376,7 @@ class EventRouter:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
                 h.handler(event)
             except Exception as e:
-                logger.error(f"Error handling event {event} for entity {h.entity}: {e}")
+                self._log_event_handling_error(event=event, entity=h.entity, ex=e)
 
     def _handle_simulation_start(self, event: Event) -> None:
         """
@@ -389,7 +390,7 @@ class EventRouter:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
                 h.handler(event)
             except Exception as e:
-                logger.error(f"Error handling event {event} for entity {h.entity}: {e}")
+                self._log_event_handling_error(event=event, entity=h.entity, ex=e)
 
     def _handle_simulation_pause(self, event: Event) -> None:
         """
@@ -403,7 +404,7 @@ class EventRouter:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
                 h.handler(event)
             except Exception as e:
-                logger.error(f"Error handling event {event} for entity {h.entity}: {e}")
+                self._log_event_handling_error(event=event, entity=h.entity, ex=e)
 
     def _handle_simulation_resume(self, event: Event) -> None:
         """
@@ -417,7 +418,7 @@ class EventRouter:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
                 h.handler(event)
             except Exception as e:
-                logger.error(f"Error handling event {event} for entity {h.entity}: {e}")
+                self._log_event_handling_error(event=event, entity=h.entity, ex=e)
 
     def _handle_simulation_shutdown(self, event: Event) -> None:
         """
@@ -431,7 +432,7 @@ class EventRouter:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
                 h.handler(event)
             except Exception as e:
-                logger.error(f"Error handling event {event} for entity {h.entity}: {e}")
+                self._log_event_handling_error(event=event, entity=h.entity, ex=e)
 
     def _handle_time_updated(self, event: Event) -> None:
         """
@@ -445,7 +446,7 @@ class EventRouter:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
                 h.handler(event)
             except Exception as e:
-                logger.error(f"Error handling event {event} for entity {h.entity}: {e}")
+                self._log_event_handling_error(event=event, entity=h.entity, ex=e)
 
     def _handle_named_event(self, event: Event) -> None:
         """
@@ -459,4 +460,15 @@ class EventRouter:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
                 h.handler(event)
             except Exception as e:
-                logger.error(f"Error handling event {event} for entity {h.entity}: {e}")
+                self._log_event_handling_error(event=event, entity=h.entity, ex=e)
+
+    @staticmethod
+    def _log_event_handling_error(event: Event, entity, ex: Exception) -> None:
+        """
+        Logs a common error for errors handling events.
+        :param event: The event being handled.
+        :param entity: The entity that the event is to be sent to.
+        :param ex: The exception that was caught.
+        """
+        entity_props = scarab_properties(entity)
+        logger.error(f"Error handling {event.event_name} event {event} for entity {entity_props}: {ex}")

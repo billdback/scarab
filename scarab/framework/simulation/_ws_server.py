@@ -119,7 +119,6 @@ class WSEventServer:
 
     async def send_event(self, event: Event):
         logger.debug(f'  WSEventServer: Sending event: {event.event_name}')
-        print(f'  WSEventServer: Sending event: {event.event_name}')
         if self._clients:
             try:
                 message = json.dumps(event.to_json())
