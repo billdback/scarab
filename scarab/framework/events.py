@@ -12,6 +12,7 @@ import json
 from typing import Any, Dict, List
 from types import SimpleNamespace
 
+from scarab.framework.types import ScarabException
 from scarab.framework.utils import serialize
 
 
@@ -176,3 +177,7 @@ class TimeUpdatedEvent(Event):
             self.previous_time = previous_time
         else:
             self.previous_time = sim_time - 1
+
+        if self.previous_time >= sim_time:
+            raise ValueError(
+                f"Attempting to update from current or future time: {self.previous_time} to {self.sim_time}")
