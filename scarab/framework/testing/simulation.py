@@ -54,7 +54,6 @@ class Simulation():
         self._entities[entity.scarab_id] = entity
         self._event_router.register(entity=entity)
 
-        # TODO replace this with the call to send new entity created events.
         self.send_entity_created_event(entity=entity)
 
     # ####################### The following methods to make sending specific events easier. #######################
