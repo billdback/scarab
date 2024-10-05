@@ -12,7 +12,6 @@ import json
 from typing import Any, Dict, List
 from types import SimpleNamespace
 
-from scarab.framework.types import ScarabException
 from scarab.framework.utils import serialize
 
 

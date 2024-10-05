@@ -1,4 +1,9 @@
 """
+Copyright (c) 2024 William D Back
+
+This file is part of Scarab licensed under the MIT License.
+For full license text, see the LICENSE file in the project root.
+
 Defines the types for the entities.
 
 WARNING: Trying to name a file `types` can cause errors when importing.
@@ -37,5 +42,5 @@ class OutsideTempType:
     Sim name: outside-temp
     """
     current_temp: float = 0.0
-    time_of_date: int = 0.0 # minute of the day.
+    time_of_day: int = 0.0 # minute of the day.
 

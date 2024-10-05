@@ -1,4 +1,9 @@
 """
+Copyright (c) 2024 William D Back
+
+This file is part of Scarab licensed under the MIT License.
+For full license text, see the LICENSE file in the project root.
+
 The hive consist of the bees and has a temperature that the bees will attempt to keep within a certain bounds.
 """
 
@@ -36,7 +41,7 @@ class Hive:
         self.outside_temp = None  # Will hold the current outside temperature
 
         self.buzzing_impact = 0.1  # warm the hive
-        self.flapping_impact = -0.1 # cool the hive
+        self.flapping_impact = -0.1  # cool the hive
 
     @entity_created(entity_name='bee')
     def bee_created(self, ce: EntityCreatedEvent):
@@ -100,7 +105,7 @@ class Hive:
     @entity_created(entity_name='outside-temperature')
     def outside_temp_created(self, ce: EntityCreatedEvent):
         """Called when the 'outside-temperature' entity is created."""
-        self.outside_temp = ce.entity
+        self.outside_temp = ce.entity.current_temp
         self.current_temp = ce.entity.current_temp
 
     @entity_changed(entity_name='outside-temperature')
@@ -117,9 +122,9 @@ class Hive:
         Updates the hive's current temperature based on outside temp and bee activities.
         """
 
-        activity_effect = (self.number_of_bees_buzzing * self.buzzing_impact) + (self.number_of_bees_flapping * self.flapping_impact)
-        # TODO have the current temp change based on the outside temp diff vs. current and activity.
-        self.current_temp = self.outside_temp.current_temp + activity_effect
+        activity_effect = (self.number_of_bees_buzzing * self.buzzing_impact) + (
+                    self.number_of_bees_flapping * self.flapping_impact)
+        self.current_temp = round(self.outside_temp + activity_effect, 2)
 
     @time_updated()
     def time_updated(self, tue: TimeUpdatedEvent) -> None:
@@ -138,4 +143,3 @@ class Hive:
 
         print(f"\nCurrent hive temperature: {self.current_temp}")
         print(f"Outside temperature: {self.outside_temp}")
-

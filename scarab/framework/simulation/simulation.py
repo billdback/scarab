@@ -230,12 +230,18 @@ class Simulation:
         logger.info(f"Simulation stepping at time {self._current_time}")
 
         # FUTURE For now just incrementing by 1, but could change in the future.
+        before_event_properties = self._get_before_entity_properties()
+
+        # send time updates first.
         await self._route_event(
             TimeUpdatedEvent(sim_time=self._current_time, previous_time=self._current_time - 1))
-        before_event_properties = self._get_before_entity_properties()
+
+        # now send the rest of the events.
         while self._current_time == self._event_queue.next_event_time:
             event = self._event_queue.next_event()
             await self._route_event(event)
+
+        # finally send any change events based on the previous.
         await self._send_entity_change_events(before_event_properties)
 
     def _get_before_entity_properties(self) -> Dict[SimID, Dict[str, object]]:
@@ -260,6 +266,7 @@ class Simulation:
             entity = self._entities.get(entityID, None)  # it might be possible to not get an entity if it was deleted
             if entity:
                 new_properties = scarab_properties(entity)
+                # testing
                 changed_properties = self._compare_properties(old_properties, new_properties)
                 if len(changed_properties) > 0:
                     self.send_event(EntityChangedEvent(scarab_properties(entity), changed_properties))
@@ -274,6 +281,7 @@ class Simulation:
         :param old_properties: The list of old properties.
         :param new_properties: The list of new properties.
         """
+        logging.debug(f'Comparing new: {new_properties} to old: {old_properties}')
         changed_properties = []
         for prop_name, prop_value in new_properties.items():
             if prop_name in old_properties:  # changed
@@ -286,9 +294,6 @@ class Simulation:
                 changed_properties.append(prop_name)
 
         return changed_properties
-
-    # TODO for the pause, resume, and shutdown, have these set the state and then the _run will handle the
-    #  state change and send the event.
 
     def pause(self) -> None:
         """

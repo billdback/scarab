@@ -12,8 +12,8 @@ import functools
 import types
 from typing import Generic, Type, TypeVar
 
-from .events import *
-from .types import ScarabException
+from scarab.framework.events import *
+from scarab.framework.types import ScarabException
 
 T = TypeVar('T')
 P = TypeVar('P')

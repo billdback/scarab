@@ -1,0 +1,34 @@
+# Copyright (c) 2024 William D Back
+#
+# This file is part of Scarab licensed under the MIT License.
+# For full license text, see the LICENSE file in the project root.
+
+# Example TOML file for testing the Beehive simulation.  You can use this as a basis for your own files.
+
+# Bee settings.  The actual buzzing and flapping will vary based on the range.
+[bees]
+number_bees = 20
+
+# if true, then the bees will vary the tolerance for when to flap or buzz.
+vary_tolerance = true
+
+# If varying, then these factors are used to calculate a normal distribution.  Otherwise, the value will be the
+# average +/1 the standard deviation
+temp_average = 70
+temp_std_dev = 6
+
+# Hive settings.  None currently.
+[hive]
+
+# Outside temperature ranges.
+[outside_temp]
+min_temperature = 50
+max_temperature = 90
+
+# General simulation settings.
+[sim]
+number_steps = 24  # how many steps to run
+step_length = 3  # minimum time in seconds to run.
+
+
+
