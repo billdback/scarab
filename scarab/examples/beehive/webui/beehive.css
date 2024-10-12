@@ -1,0 +1,120 @@
+/** Copyright (c) 2024 William D Back
+ *
+ * This file is part of Scarab licensed under the MIT License.
+ * For full license text, see the LICENSE file in the project root.
+ */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background-color: #f5f5f5;
+}
+
+.header-container {
+  display: flex;
+  align-items: center; /* Vertically aligns items */
+  margin-left: 20px; /* Optional: Adds space from the left of the page */
+  padding-bottom: 20px;
+}
+
+.header-container img {
+  margin-right: 10px; /* Adds space between the image and the header */
+}
+
+.header-container h1 {
+  margin: 0; /* Removes default margins */
+}
+
+.container {
+  display: grid;
+  grid-template-columns: 1fr 4fr;
+  grid-gap: 20px;
+}
+
+.left-section {
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+  border-radius: 8px;
+}
+
+.button-group {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.button-group button {
+  flex: 1;
+  padding: 10px;
+  margin: 0 5px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.button-group button:hover {
+  background-color: #0056b3;
+}
+
+.left-section h2 {
+  margin-top: 0;
+  color: #555;
+}
+
+.left-section .stats-box {
+  margin-top: 20px;
+  background-color: #fff;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.stats-box label {
+  display: block;
+  margin-top: 10px;
+  color: #777;
+}
+
+.stats-box input {
+  width: 90%;
+  padding: 8px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.stats-box input[readonly] {
+  background-color: #eee;
+}
+
+.stats-box h3 {
+  margin-top: 20px;
+  color: #333;
+}
+
+.right-section {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  position: relative;
+}
+
+.charts {
+  display: flex;
+  flex-direction: column; /* Stack the charts vertically */
+  height: 80vh; /* Full viewport height */
+}
+
+.chart-container {
+  flex: 1; /* Each chart-container takes up equal height */
+  padding: 10px; /* Optional: Add some padding for spacing around the charts */
+  box-sizing: border-box; /* Ensure padding does not affect width */
+  height: 40vh;
+}
+
+.chart-container canvas {
+  width: 100%; /* Chart takes up the full width of its container */
+  height: 100%; /* Chart takes up the full height of its container */
+}

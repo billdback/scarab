@@ -1,0 +1,67 @@
+<!--
+Copyright (c) 2024 William D Back
+
+This file is part of Scarab licensed under the MIT License.
+For full license text, see the LICENSE file in the project root.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Scarab Beehive</title>
+    <link rel="icon" type="image/x-icon" href="scarab.ico" />
+    <link rel="stylesheet" href="beehive.css" />
+  </head>
+  <body>
+    <header>
+      <div class="header-container">
+        <img src="scarab.ico" alt="Scarab Icon" width="40" height="40" />
+        <h1>Beehive</h1>
+      </div>
+    </header>
+
+    <div class="container">
+      <div class="left-section">
+        <div class="stats-box">
+          <h2>Current Stats</h2>
+          <label>Simulation time:</label>
+          <input id="simtime-txt" type="text" readonly />
+
+          <h3>Temperature</h3>
+          <label>Outside temp:</label>
+          <input id="outside-temp-txt" type="text" readonly />
+          <label>Hive temp:</label>
+          <input id="hive-temp-txt" type="text" readonly />
+
+          <h3>Bees</h3>
+          <label># Bees:</label>
+          <input id="total-bees-txt" type="text" readonly />
+          <label># Flapping:</label>
+          <input id="bees-flapping-txt" type="text" readonly />
+          <label># Buzzing:</label>
+          <input id="bees-buzzing-txt" type="text" readonly />
+        </div>
+      </div>
+
+      <div class="right-section">
+        <div class="button-group">
+          <button id="start-resume-sim-button">Start</button>
+          <button id="pause-sim-button">Pause</button>
+          <button id="shutdown-sim-button">Shutdown</button>
+        </div>
+        <div class="charts">
+          <div class="chart-container">
+            <canvas id="temp-line-chart"></canvas>
+          </div>
+          <div class="chart-container">
+            <canvas id="bee-line-chart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="status"></div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="beehive.js" defer></script>
+  </body>
+</html>

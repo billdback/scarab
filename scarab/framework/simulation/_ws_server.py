@@ -22,7 +22,7 @@ logger.setLevel(logging.WARNING)
 class WSEventServer:
 
     # noinspection PyUnresolvedReferences
-    def __init__(self, sim: 'Simulation', host='localhost', port=12345):
+    def __init__(self, sim: 'Simulation', host='localhost', port=1234):
         """
         Creates a new web socket event server for sending and receiving events.
         :param sim: The simulation that owns the server.  It's used to allow events to call the simulation.
@@ -90,7 +90,7 @@ class WSEventServer:
 
     async def _run_server(self):
         """Runs the server"""
-        logger.debug(f"Starting server on {self._host}:{self._port}")
+        print(f"Starting server on {self._host}:{self._port}")
         self._is_running = True
         # noinspection PyTypeChecker
         async with websockets.serve(self._handle_client, self._host, self._port) as server:

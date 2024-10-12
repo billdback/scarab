@@ -7,7 +7,7 @@
 
 # Bee settings.  The actual buzzing and flapping will vary based on the range.
 [bees]
-number_bees = 20
+number_bees = 30
 
 # if true, then the bees will vary the tolerance for when to flap or buzz.
 vary_tolerance = true
@@ -27,8 +27,8 @@ max_temperature = 90
 
 # General simulation settings.
 [sim]
-number_steps = 24  # how many steps to run
-step_length = 3  # minimum time in seconds to run.
+number_steps = 30  # how many steps to run
+step_length = 1  # minimum time in seconds to run.
 
 
 

@@ -17,8 +17,10 @@ different temperatures.  What you will see is a more leveled temperature.
 
 import argparse
 import numpy as np
+import os
 import toml
 from typing import Dict
+import webbrowser
 
 from scarab.framework.simulation.simulation import Simulation
 
@@ -67,6 +69,11 @@ def run_sim(params: Dict) -> None:
                 bee = Bee(low_temp=min_temps[_], high_temp=max_temps[_])
                 sim.add_entity(bee)
 
+            # open the UI, which is a web page.
+            file_path = os.path.abspath("./webui/index.html")
+            webbrowser.open(f"file://{file_path}")
+
+            # run the sim.
             sim.run(nbr_steps=params['sim']['number_steps'], step_length=params['sim']['step_length'])
         except KeyError as ke:
             print(f"Parameter key error: {ke}.  Fix the config file and try again.")
