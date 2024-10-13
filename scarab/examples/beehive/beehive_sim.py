@@ -61,7 +61,7 @@ def run_sim(params: Dict) -> None:
                 # for normal dist, loc == stddev, scale == stddev, size == number of values
                 min_temps = np.random.normal(loc=60, scale=6, size=nbr_bees)
                 max_temps = np.random.normal(loc=60, scale=6, size=nbr_bees)
-            else: # all the same values.
+            else:  # all the same values.
                 min_temps = [temp_average - temp_std_dev] * nbr_bees
                 max_temps = [temp_average + temp_std_dev] * nbr_bees
 
@@ -74,7 +74,8 @@ def run_sim(params: Dict) -> None:
             webbrowser.open(f"file://{file_path}")
 
             # run the sim.
-            sim.run(nbr_steps=params['sim']['number_steps'], step_length=params['sim']['step_length'])
+            sim.run(nbr_steps=params['sim']['number_steps'], step_length=params['sim']['step_length'],
+                    start_paused=True)
         except KeyError as ke:
             print(f"Parameter key error: {ke}.  Fix the config file and try again.")
 
