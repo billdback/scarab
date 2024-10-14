@@ -25,6 +25,13 @@ Finally, run the simulation with the following command (change the file name as 
 python -m scarab.examples.beehive.beehive_sim test.toml
 ~~~
 
+You should see a UI like the following:
+
+![Beehive UI](./images/example-ui.png)
+
+To control the simulation, use the Start/Pause/Shutdown buttons.  The simulation will start in a paused state and then 
+cycle after start is selected.  
+
 ## Example TOML file
 
 ~~~
