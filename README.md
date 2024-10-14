@@ -29,7 +29,9 @@ Scarab requires Python 3.7 or later to run. Additional dependencies can be found
 
 The easiest way to install is to use `git` and `pip` and install directly from GitHub using the following command:
 
-`pip install --upgrade git+https://github.com/billdback/scarab`
+~~~
+pip install --upgrade git+https://github.com/billdback/scarab
+~~~
 
 NOTE: it's recommended that you first create a virtual environment before installing.
 
@@ -137,13 +139,51 @@ simulation has a web client that uses the websocket approach.
 
 ### Beehive
 
-`python -m scarab.examples.beehive`
 
 The beehive example consists of a beehive with bees. The goal of the bees is to maintain a temperature of the hive
 within acceptable bounds by buzzing (heating the hive) and flapping (cooling the hive). As the outside temperature
 changes, it causes changes to the hive temperature. The bees respond accordingly. A key aspect of this simulation is
 to show how variability in reponses (i.e. bees buzzing and fanning at different temperatures) can keep the temperature
 more stable than if all the bees have the same tolerance.
+
+After installing (ideally into venv), you can run the beehive simulation to make sure everything is working.
+
+1. Create a TOML file and call it test.toml:
+
+~~~
+# Example TOML file for testing the Beehive simulation.  You can use this as a basis for your own files.
+
+# Bee settings.  The actual buzzing and flapping will vary based on the range.
+[bees]
+number_bees = 30
+
+# if true, then the bees will vary the tolerance for when to flap or buzz.
+vary_tolerance = true
+
+# If varying, then these factors are used to calculate a normal distribution.  Otherwise, the value will be the
+# average +/1 the standard deviation
+temp_average = 70
+temp_std_dev = 6
+
+# Hive settings.  None currently.
+[hive]
+
+# Outside temperature ranges.
+[outside_temp]
+min_temperature = 50
+max_temperature = 90
+
+# General simulation settings.
+[sim]
+number_steps = 30  # how many steps to run
+step_length = 1  # minimum time in seconds to run.
+~~~
+
+2. Run the simulation using the command:
+
+~~~
+python -m scarab.examples.beehive.beehive_sim test.toml
+~~~
 
 ## Releases
 
@@ -176,6 +216,7 @@ UIs easier. Some features planned include:
 * Add support for "commands", which are messages targeted to specific entities.
 * Add a JS (TS?) library for UI development. Currently, web UIs must parse and handle events from JSON.
 * Additional example sim to demonstrate the new features.
+* A tutorial to help users learn to use the framework.
 
 ### Version 3.0
 
