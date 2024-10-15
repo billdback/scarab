@@ -152,7 +152,7 @@ class OrderedEventQueue:
     @property
     def min_add_time(self) -> int:
         """
-        Returns the min time based on the min times in the queues.  This has to be the max of the mins because
+        Returns the min time based on the min times in the queues.  This has to be the max of the minimums because
         the events don't get retrieved at the same time.  So one queue could have an event retrieved, increasing the
         time before others did.
         """

@@ -23,11 +23,13 @@ class SimpleEntity:
         self.number_entities = 0  # tracks the number of known entities.
         self.entity_changes = 0  # tracks the number of change events seen.
 
+    # noinspection PyUnusedLocal
     @entity_created(entity_name="basic-entity")
     def basic_entity_create(self, evt: EntityCreatedEvent):
         """Just track the number of basic entities."""
         self.number_entities += 1
 
+    # noinspection PyUnusedLocal
     @entity_changed(entity_name="basic-entity")
     def basic_entity_changed(self, evt: EntityChangedEvent):
         """Track the number of changes seen."""

@@ -1,3 +1,10 @@
+"""
+Copyright (c) 2024 William D Back
+
+This file is part of Scarab licensed under the MIT License.
+For full license text, see the LICENSE file in the project root.
+"""
+
 from dataclasses import dataclass
 
 from scarab.framework.entity import Entity, entity_created, entity_changed, entity_destroyed, simulation_start, \
@@ -53,30 +60,35 @@ class TestEntity1:
         """Called with a test2 entity is updated."""
         self.test_entity_2 = ue.entity
 
+    # noinspection PyUnusedLocal
     @entity_destroyed(entity_name='test2')
     def entity_2_destroyed(self, de: EntityDestroyedEvent):
         """Called when a test2 entity was destroyed."""
         self.test_entity_2 = None
         self.nbr_test2_entities -= 1
 
+    # noinspection PyUnusedLocal
     @simulation_start()
     def simulation_start(self, se: SimulationStartEvent):
         """Called when the simulation starts."""
         self.simulation_running = True
         self.simulation_has_started = True
 
+    # noinspection PyUnusedLocal
     @simulation_pause()
     def simulation_pause(self, se: SimulationPauseEvent):
         """Called when the simulation starts."""
         self.simulation_running = False
         self.simulation_has_paused = True
 
+    # noinspection PyUnusedLocal
     @simulation_resume()
     def simulation_resume(self, se: SimulationResumeEvent):
         """Called when the simulation resumes."""
         self.simulation_running = True
         self.simulation_has_resumed = True
 
+    # noinspection PyUnusedLocal
     @simulation_shutdown()
     def simulation_shutdown(self, se: SimulationShutdownEvent):
         """Called when the simulation is shutting down."""
@@ -88,6 +100,7 @@ class TestEntity1:
         """Called when time updates."""
         self.simulation_time = tue.sim_time
 
+    # noinspection PyUnusedLocal
     @event(name='generic')
     def handle_generic(self, evt: Event):
         """Called when a generic event is sent."""

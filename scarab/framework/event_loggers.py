@@ -82,6 +82,7 @@ class BaseLogger(ABC):
         if not self._log_types:
             return  # not logging anything.
 
+        # noinspection PyUnusedLocal
         should_log = False
 
         if LogEventType.ALL in self._log_types:
@@ -101,7 +102,7 @@ class BaseLogger(ABC):
 
 class FileLogger(BaseLogger):
     """
-    Event logger that logs to a file..
+    Event logger that logs to a file.
     """
 
     def __init__(self, filename: str, types: List[LogEventType] = None) -> None:
@@ -127,4 +128,4 @@ class FileLogger(BaseLogger):
         try:
             self._file.close()
         except IOError as ioe:
-            print(f"Error closing the log file: {self._file.name}")
+            print(f"Error closing the log file: {self._file.name}: {ioe}")

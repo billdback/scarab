@@ -1,4 +1,9 @@
 """
+Copyright (c) 2024 William D Back
+
+This file is part of Scarab licensed under the MIT License.
+For full license text, see the LICENSE file in the project root.
+
 Tests the event queues.
 """
 import pytest
@@ -91,6 +96,7 @@ def test_adding_events():
     with pytest.raises(ValueError):
         eq.put(Event(sim_time=-1, event_name='a-final-event'))
 
+
 def test_getting_events():
     """Tests getting events in the right order."""
 
@@ -103,7 +109,7 @@ def test_getting_events():
     assert eq.min_add_time == 1
 
     # put events in order and make sure the queue updates appropriately.
-    eq.put(Event (sim_time=5, event_name='some-event'))
+    eq.put(Event(sim_time=5, event_name='some-event'))
     assert eq.next_event_time == 5
     assert len(eq) == 1
 
@@ -115,7 +121,7 @@ def test_getting_events():
     assert eq.next_event_time == 5
     assert len(eq) == 3
 
-    eq.put(Event (sim_time=7, event_name='some-event'))
+    eq.put(Event(sim_time=7, event_name='some-event'))
     assert eq.next_event_time == 5
     assert len(eq) == 4
 
@@ -153,4 +159,3 @@ def test_getting_events():
     evt = eq.next_event()
     assert evt is None
     assert len(eq) == 0
-

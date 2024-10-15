@@ -1,4 +1,9 @@
 """
+Copyright (c) 2024 William D Back
+
+This file is part of Scarab licensed under the MIT License.
+For full license text, see the LICENSE file in the project root.
+
 Tests the simulation and related functionality.
 """
 
@@ -57,7 +62,7 @@ def test_starting_in_pause_state():
         entity2 = TestEntity2()
         sim.add_entity(entity2)
 
-        # running in a thread so it will start in pause, be told to run, then end.
+        # running in a thread, so it will start in pause, be told to run, then end.
         thread = threading.Thread(target=sim.run, args=(2, 0, True))
         thread.start()
         time.sleep(1)  # have to wait for the thread to start.  Normally the resume would come externally.

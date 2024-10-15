@@ -11,6 +11,7 @@ from scarab.framework.events import EntityCreatedEvent, EntityChangedEvent, Enti
     SimulationStartEvent, SimulationPauseEvent, SimulationResumeEvent, SimulationShutdownEvent, \
     TimeUpdatedEvent, Event
 
+# noinspection PyProtectedMember
 from scarab.framework.simulation._event_router import EventRouter
 from scarab.framework.simulation.simulation import new_sim_id
 from scarab.framework.types import SimID

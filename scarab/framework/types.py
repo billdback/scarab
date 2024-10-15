@@ -16,8 +16,8 @@ SimID = str
 # Standard event handler takes an event and doesn't return anything.
 EventHandler: object = Callable[[Event], None]
 
+
 class ScarabException(Exception):
     def __init__(self, msg: str = None):
         self.message = msg
         super().__init__(msg)
-

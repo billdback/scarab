@@ -11,9 +11,6 @@ import asyncio
 import websockets
 import aioconsole
 
-from scarab.framework.events import SimulationStartEvent, SimulationPauseEvent, SimulationResumeEvent, \
-    SimulationShutdownEvent
-
 valid_commands = {
     'help': 'shows the help message',
     'start': 'starts simulation execution',

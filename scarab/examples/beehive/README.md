@@ -3,7 +3,7 @@
 The beehive example consists of a beehive with bees. The goal of the bees is to maintain a temperature of the hive
 within acceptable bounds by buzzing (heating the hive) and flapping (cooling the hive). As the outside temperature
 changes, it causes changes to the hive temperature. The bees respond accordingly. A key aspect of this simulation is
-to show how variability in reponses (i.e. bees buzzing and fanning at different temperatures) can keep the temperature
+to show how variability in responses (i.e. bees buzzing and fanning at different temperatures) can keep the temperature
 more stable than if all the bees have the same tolerance.
 
 ## Running the simulation

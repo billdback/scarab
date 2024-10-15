@@ -9,7 +9,6 @@ This file contains classes and types for working with entities.
 import dataclasses
 from dataclasses import asdict
 import functools
-import types
 from typing import Generic, Type, TypeVar
 
 from scarab.framework.events import *
@@ -21,8 +20,8 @@ P = TypeVar('P')
 
 class EntityWrapper(Generic[T]):
     """
-    Wrapper for a class with a name to use in the simulation.  This allows you to easily swap out implementation classes.
-    e.g.
+    Wrapper for a class with a name to use in the simulation.  This allows you to easily swap out
+    implementation classes. e.g.
     @Entity(name="Bee")
     class.....
 
@@ -101,9 +100,11 @@ def scarab_properties(obj) -> Dict[str, object]:
     return props
 
 
+"""
 class Entity(EntityWrapper[T]):
 
-    def __init__(self, name: str, conforms_to=None):
+    def __init__(self, name: str, cls: Type[T], conforms_to=None):
+        super().__init__(cls, name, conforms_to)
         self.scarab_name = name
         self.scarab_conforms_to = conforms_to
 
@@ -115,6 +116,20 @@ class Entity(EntityWrapper[T]):
             return instance
 
         return wrapper
+"""
+
+
+class Entity(Generic[T]):
+    """
+    Decorator class to create an EntityWrapper for the decorated class.
+    """
+
+    def __init__(self, name: str, conforms_to=None):
+        self.name = name
+        self.conforms_to = conforms_to
+
+    def __call__(self, cls: Type[T]) -> EntityWrapper[T]:
+        return EntityWrapper(cls, self.name, self.conforms_to)
 
 
 """
@@ -238,7 +253,6 @@ class simulation_start(ScarabEventHandler):
     def __init__(self):
         """
         Create a new wrapper for handling simulation start events
-        :param entity_name: Name of the new entity to handle.
         """
         super().__init__()
 

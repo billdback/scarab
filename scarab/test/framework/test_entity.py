@@ -1,4 +1,9 @@
 """
+Copyright (c) 2024 William D Back
+
+This file is part of Scarab licensed under the MIT License.
+For full license text, see the LICENSE file in the project root.
+
 Tests the entity classes.
 """
 import pytest
@@ -12,6 +17,7 @@ from .test_items import TestEntity1, TestEntity2, Test2EntityType
 from scarab.framework.types import ScarabException
 
 
+# noinspection PyUnresolvedReferences
 def test_non_conforming_entity_create_with_defaults():
     """Tests creating an entity with default values."""
 
@@ -35,9 +41,10 @@ def test_non_conforming_entity_create():
             self.prop5 = 5
 
     with pytest.raises(ScarabException):
-        entity = TestEntity3()
+        TestEntity3()
 
 
+# noinspection PyUnresolvedReferences
 def test_conforming_entity_type():
     """Tests creating an entity that conforms to a type."""
     entity = TestEntity2(prop3='test str', prop4=16)
@@ -46,9 +53,10 @@ def test_conforming_entity_type():
     assert entity.scarab_id is None
     assert entity.prop3 == 'test str'
     assert entity.prop4 == 16
-    assert entity.prop5 == True
+    assert entity.prop5
 
 
+# noinspection PyUnresolvedReferences
 def test_conforming_entity_with_missing_properties():
     """Tests creating an entity that conforms to a type."""
     entity = TestEntity2(prop3='test str', prop4=16)
@@ -57,7 +65,7 @@ def test_conforming_entity_with_missing_properties():
     assert entity.scarab_id is None
     assert entity.prop3 == 'test str'
     assert entity.prop4 == 16
-    assert entity.prop5 == True
+    assert entity.prop5
 
 
 def test_scarab_props():
