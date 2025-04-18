@@ -7,6 +7,8 @@
  to send back control messages.
  */
 
+import {WSEventHandler} from "./ws_event_handler.js";
+
 const load_app = () => {
     console.log("Beehive UI started.");
     updateView();
@@ -31,7 +33,6 @@ const shutdownButton = document.getElementById("shutdown-sim-button");
   When a time updated event is received, the stats and charts are all updated and then a new entry is received.
 */
 
-// TODO - fix the events and such after getting them.
 class BeeHiveStats {
     constructor() {
         this.bees = {};
@@ -73,12 +74,8 @@ class BeeHiveStats {
     timeChange(time) {
         console.log(`time update at ${time}.  bees == `, this.bees)
         this.times.push(time);
-        this.bees_buzzing_history.push(
-            Object.values(this.bees).filter((bee) => bee.isBuzzing).length
-        );
-        this.bees_flapping_history.push(
-            Object.values(this.bees).filter((bee) => bee.isFlapping).length
-        );
+        this.bees_buzzing_history.push(Object.values(this.bees).filter((bee) => bee.isBuzzing).length);
+        this.bees_flapping_history.push(Object.values(this.bees).filter((bee) => bee.isFlapping).length);
 
         this.outside_temp_history.push(this.outside_temp);
         this.hive_temp_history.push(this.hive_temp);
@@ -98,52 +95,13 @@ const showStats = () => {
 
     totalBeesTxt.value = stats.number_bees;
 
-    beesFlappingTxt.value =
-        stats.bees_flapping_history[stats.bees_flapping_history.length - 1];
+    beesFlappingTxt.value = stats.bees_flapping_history[stats.bees_flapping_history.length - 1];
 
-    beesBuzzingTxt.value =
-        stats.bees_buzzing_history[stats.bees_buzzing_history.length - 1];
+    beesBuzzingTxt.value = stats.bees_buzzing_history[stats.bees_buzzing_history.length - 1];
 
     outsideTempTxt.value = stats.outside_temp;
 
     hiveTempTxt.value = stats.hive_temp;
-};
-
-/* Event handlers ********************************************************************/
-const handleTimeUpdated = (event) => {
-    stats.timeChange(event.sim_time);
-    updateView();
-}
-
-const handleEntityCreated = (event) => {
-    // Handles the creation of entities.  Only the bees are remembered.  Temps are stored.
-    if (event.entity.scarab_name === 'bee') {
-        stats.addOrChangeBee(event.entity);
-    } else if (event.entity.scarab_name === 'hive') {
-        stats.hive_temp = event.entity.current_temp;
-    } else if (event.entity.scarab_name === 'outside-temperature') {
-        stats.outside_temp = event.entity.current_temp;
-    } else {
-        console.error(`unexpected entity type ${event.entity.scarab_name}`)
-    }
-}
-
-const handleEntityChanged = (event) => {
-    handleEntityCreated(event);  // logic is the same.
-}
-
-const handleEntityDeleted = (event) => {
-
-    if (event.entity.scarab_name === 'bee') {
-        stats.removeBee(event.entity);
-    } else if (event.entity.scarab_name === 'hive') {
-        stats.hive_temp = NaN;  // will this break?
-    } else if (event.entity.scarab_name === 'outside-temperature') {
-        stats.outside_temp = NaN;  // will this break?
-    } else {
-        console.error(`unexpected entity type ${event.entity.scarab_name}`)
-    }
-
 }
 
 /* Chart controls ********************************************************************/
@@ -155,45 +113,28 @@ const updateCharts = () => {
 
 const tempCtx = document.getElementById("temp-line-chart").getContext("2d");
 const tempLineChart = new Chart(tempCtx, {
-    type: "line",
-    data: {
-        labels: stats.times,
-        datasets: [
-            {
-                label: "Outside Temp",
-                data: [], // stats.outside_temp_history,
-                yAxisID: "y", // Reference the first y-axis
-                borderColor: "rgb(255, 165, 0)",
-                backgroundColor: "rgba(255, 165, 0, 0.75)",
-                fill: false,
-            },
-            {
-                label: "Hive Temp",
-                data: [], // stats.hive_temp_history,
-                yAxisID: "y", // Reference the first y-axis
-                borderColor: "rgb(255, 200, 102)",
-                backgroundColor: "rgba(255, 200, 102, 0.75)",
-                fill: false,
-            },
-        ],
-    },
-    options: {
+    type: "line", data: {
+        labels: stats.times, datasets: [{
+            label: "Outside Temp", data: [], // stats.outside_temp_history,
+            yAxisID: "y", // Reference the first y-axis
+            borderColor: "rgb(255, 165, 0)", backgroundColor: "rgba(255, 165, 0, 0.75)", fill: false,
+        }, {
+            label: "Hive Temp", data: [], // stats.hive_temp_history,
+            yAxisID: "y", // Reference the first y-axis
+            borderColor: "rgb(255, 200, 102)", backgroundColor: "rgba(255, 200, 102, 0.75)", fill: false,
+        },],
+    }, options: {
         scales: {
             y: {
-                type: "linear",
-                position: "left", // Temperature on the left
+                type: "linear", position: "left", // Temperature on the left
                 title: {
-                    display: true,
-                    text: "Temp",
-                },
-                ticks: {
+                    display: true, text: "Temp",
+                }, ticks: {
                     beginAtZero: true,
                 },
-            },
-            x: {
+            }, x: {
                 title: {
-                    display: true,
-                    text: "Time",
+                    display: true, text: "Time",
                 },
             },
         },
@@ -207,53 +148,33 @@ const updateTempLineChart = () => {
 
 const beeCtx = document.getElementById("bee-line-chart").getContext("2d");
 const beeLineChart = new Chart(beeCtx, {
-    type: "line",
-    data: {
-        labels: stats.times,
-        datasets: [
-            {
-                label: "Bees Flapping",
-                data: [], // stats.bees_flapping_history,
-                yAxisID: "y",
-                borderColor: "rgb(0, 0, 255)",
-                backgroundColor: "rgba(0, 0, 255, 0.75)",
-                fill: false,
-            },
-            {
-                label: "Bees Buzzing",
-                data: [], // stats.bees_buzzing_history,
-                yAxisID: "y",
-                borderColor: "rgb(173, 216, 230)",
-                backgroundColor: "rgba(173, 216, 230, 0.75)",
-                fill: false,
-            },
-        ],
-    },
-    options: {
+    type: "line", data: {
+        labels: stats.times, datasets: [{
+            label: "Bees Flapping", data: [], // stats.bees_flapping_history,
+            yAxisID: "y", borderColor: "rgb(0, 0, 255)", backgroundColor: "rgba(0, 0, 255, 0.75)", fill: false,
+        }, {
+            label: "Bees Buzzing", data: [], // stats.bees_buzzing_history,
+            yAxisID: "y", borderColor: "rgb(173, 216, 230)", backgroundColor: "rgba(173, 216, 230, 0.75)", fill: false,
+        },],
+    }, options: {
         scales: {
             y: {
-                type: "linear",
-                position: "left",
-                title: {
-                    display: true,
-                    text: "Bees",
-                },
-                ticks: {
+                type: "linear", position: "left", title: {
+                    display: true, text: "Bees",
+                }, ticks: {
                     beginAtZero: true,
-                },
-                grid: {
+                }, grid: {
                     drawOnChartArea: false, // Avoid grid lines overlapping
                 },
-            },
-            x: {
+            }, x: {
                 title: {
-                    display: true,
-                    text: "Time",
+                    display: true, text: "Time",
                 },
             },
         },
     },
 });
+
 const updateBeeLineChart = () => {
     beeLineChart.data.datasets[0].data = stats.bees_flapping_history;
     beeLineChart.data.datasets[1].data = stats.bees_buzzing_history;
@@ -264,85 +185,57 @@ const updateBeeLineChart = () => {
 /* Websocket stuff. *******************************************************/
 
 // default for sim is 1234.  Would have to change if different.
-const ws = new WebSocket("ws://localhost:1234");
+const ws = new WSEventHandler("ws://localhost:1234", 5, "status");
 
-const statusDiv = document.getElementById("status");
+ws.registerEventHandler("scarab.entity.created",
+    (event) => event.entity.scarab_name === 'bee',
+    (event) => stats.addOrChangeBee(event.entity));
 
-// Connection opened
-ws.onopen = () => {
-    console.log("Connected to WebSocket server");
-    statusDiv.textContent = "Connected to server.";
-};
+ws.registerEventHandler("scarab.entity.created",
+    (event) => event.entity.scarab_name === 'hive',
+    (event) => stats.setHiveTemp(event.entity.current_temp));
 
-// Listen for messages
-ws.onmessage = (event) => {
-    try {
-        const simEvent = JSON.parse(event.data);
-        if ('event_name' in simEvent) {  // it's _probably_ a scarab event that we can handle.
-            console.log('event', simEvent)
-            switch (simEvent.event_name) {
-                case 'scarab.time.updated':
-                    handleTimeUpdated(simEvent);
-                    break;
-                case 'scarab.entity.created':
-                    handleEntityCreated(simEvent);
-                    break;
-                case 'scarab.entity.changed':
-                    handleEntityChanged(simEvent);
-                    break;
-                case 'scarab.entity.deleted':
-                    handleEntityDeleted(simEvent);
-                    break;
-                default:
-                    console.log('unhandled event', simEvent);
-            }
-        } else {
-            console.log('... unexpected event');
-        }
+ws.registerEventHandler("scarab.entity.created",
+    (event) => event.entity.scarab_name === 'outside_temp',
+    (event) => stats.setOutdoorTemp(event.entity.current_temp));
 
-    } catch (e) {
-        console.error("Error parsing message:", e);
-    }
-};
+ws.registerEventHandler("scarab.entity.updated",
+    (event) => event.entity.scarab_name === 'bee',
+    (event) => stats.addOrChangeBee(event.entity));
 
-// Handle connection close
-ws.onclose = () => {
-    console.log("Disconnected from WebSocket server");
-    statusDiv.textContent = "Disconnected from server.";
-};
+ws.registerEventHandler("scarab.entity.updated",
+    (event) => event.entity.scarab_name === 'hive',
+    (event) => stats.setHiveTemp(event.entity.current_temp));
 
-// Handle errors
-ws.onerror = (error) => {
-    console.error("WebSocket error:", error);
-    statusDiv.textContent = "WebSocket error.";
-};
+ws.registerEventHandler("scarab.entity.updated",
+    (event) => event.entity.scarab_name === 'outside_temp',
+    (event) => stats.setOutdoorTemp(event.entity.current_temp));
 
-/* Button actions. *******************************************************/
+ws.registerEventHandler("scarab.entity.deleted",
+    (event) => event.entity.scarab_name === 'bee',
+    (event) => stats.removeBee(event.entity));
 
-const startOrResume = () => {
-    sendWSMessage('start');
-};
-startResumeButton.addEventListener("click", startOrResume);
+ws.registerEventHandler("scarab.entity.deleted",
+    (event) => event.entity.scarab_name === 'hive',
+    (_) => stats.setHiveTemp(NaN));
 
-const pause = () => {
-    sendWSMessage('pause');
-};
-pauseButton.addEventListener("click", pause);
+ws.registerEventHandler("scarab.entity.deleted",
+    (event) => event.entity.scarab_name === 'outside-temperature',
+    (_) => stats.setOutdoorTemp(NaN));
 
-const shutdown = () => {
-    sendWSMessage('shutdown')
-};
-shutdownButton.addEventListener("click", shutdown);
+ws.registerEventHandler("scarab.time.updated"),
+    (_) => true,
+    (event) => stats.timeChange(event.time)
 
-const sendWSMessage = (message) => {
-    if (ws.readyState === WebSocket.OPEN) {
-        ws.send(message);
-        console.log("Sent message to server:", message);
-    } else {
-        console.warn("WebSocket is not open. Unable to send message.");
-    }
+await ws.connect();
 
-}
+
+/* Button actions to control the sim. *************************************************/
+
+// Note: () => notation is important to bind `this` correctly.
+startResumeButton.addEventListener("click", () => ws.start());
+pauseButton.addEventListener("click", () => ws.pause());
+shutdownButton.addEventListener("click", () => ws.shutdown());
 
 /* Start the app. ********************************************************************/
 
