@@ -12,6 +12,7 @@ import threading
 import time
 
 from scarab.framework.simulation.simulation import Simulation, SimulationState
+from scarab.framework.events import Event
 from scarab.test.framework.test_items import TestEntity1, TestEntity2
 
 
@@ -72,3 +73,23 @@ def test_starting_in_pause_state():
 
         assert "test_entity_2" in entity2.entity1_changed_props
         assert "nbr_test2_entities" in entity2.entity1_changed_props
+
+
+def test_entity_send_event():
+    """
+    Tests that entities can send events directly to the simulation.
+    """
+    with Simulation() as sim:
+        entity1 = TestEntity1()
+        sim.add_entity(entity1)
+        entity2 = TestEntity2()
+        sim.add_entity(entity2)
+
+        # Entity1 sends a generic event
+        entity1.send_event(Event(event_name='generic'))
+
+        # Run the simulation to process the event
+        sim.run(2)
+
+        # Verify that entity1 received the generic event
+        assert entity1.nbr_generic_events == 1

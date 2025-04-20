@@ -346,6 +346,7 @@ class Simulation:
         logger.debug(f'Adding entity: {entity}')
 
         entity.scarab_id = new_sim_id()
+        entity.scarab_simulation = self  # Add reference to the simulation
         self._entities[entity.scarab_id] = entity
         self._event_router.register(entity=entity)
         self.send_event(EntityCreatedEvent(entity_props=scarab_properties(entity)))

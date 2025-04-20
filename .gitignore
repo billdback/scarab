@@ -9,3 +9,4 @@ experiments
 __pycache__/
 venv
 build/
+*.log

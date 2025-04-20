@@ -49,6 +49,19 @@ class EntityWrapper(Generic[T]):
         instance.scarab_name = self.scarab_name
         instance.scarab_conforms_to = self.scarab_conforms_to
 
+        # Add send_event method to the instance
+        def send_event(self, event):
+            """
+            Sends an event to the simulation.
+            :param event: The event to send.
+            """
+            if hasattr(self, 'scarab_simulation'):
+                self.scarab_simulation.send_event(event)
+            else:
+                raise AttributeError("Entity not added to a simulation yet. Add the entity to a simulation before sending events.")
+
+        instance.send_event = send_event.__get__(instance)
+
         self._scarab_does_conform(instance)
 
         return instance
