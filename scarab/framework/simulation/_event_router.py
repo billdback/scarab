@@ -161,6 +161,10 @@ class EventRouter:
         entity_handlers.append(EntityAndHandler(entity, handler))
         self._entity_created_handlers[entity_name_to_handle] = entity_handlers  # add back to make sure it exists.
 
+        # Flag this entity as needing to receive existing entity created events
+        # This will be processed by the simulation when it calls send_existing_entities_to_new_entity
+        entity._needs_existing_entities = True
+
     def _register_entity_changed_handler(self, entity_name_to_handle: str, entity: object,
                                          handler: EventHandler) -> None:
         """

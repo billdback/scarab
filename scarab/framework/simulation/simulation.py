@@ -355,6 +355,25 @@ class Simulation:
         self._event_router.register(entity=entity)
         self.send_event(EntityCreatedEvent(entity_props=scarab_properties(entity)))
 
+        # If this entity has registered handlers for entity created events,
+        # send it all existing entities as entity created events
+        if hasattr(entity, '_needs_existing_entities') and entity._needs_existing_entities:
+            self._send_existing_entities_to_new_entity(entity)
+
+    def _send_existing_entities_to_new_entity(self, new_entity: object) -> None:
+        """
+        Sends entity created events for all existing entities to the new entity.
+        This allows entities added later to get updated with the current state.
+        :param new_entity: The new entity that needs to receive existing entity events.
+        """
+        # Skip sending an event for the new entity itself
+        for entity_id, entity in self._entities.items():
+            if entity_id != new_entity.scarab_id:
+                # Create a targeted entity created event
+                event = EntityCreatedEvent(entity_props=scarab_properties(entity), sim_time=self._current_time)
+                event.target_id = new_entity.scarab_id
+                self.send_event(event)
+
     def destroy_entity(self, entity: Entity) -> None:
         """
         Destroys the entity.  The entity is unique based on the simID.
