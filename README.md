@@ -16,14 +16,30 @@ would change state based on _events_, such as _time updates_ and changes in stat
 turns green, so the car starts to move. The car moves a distance for each time increment based on velocity,
 acceleration, etc.
 
+## Table of Contents
+- [License](#license)
+- [Installation](#installation)
+- [Available Scripts](#available-scripts)
+- [Scarab Concepts](#scarab-concepts)
+- [UI](#ui)
+- [Examples](#examples)
+- [Releases](#releases)
+
 ## License
+
+<details>
+<summary>Click to expand</summary>
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 Scrab is a "passion project" and as such no support is provided. But if you have questions or find bugs, please let me
 know.
+</details>
 
 ## Installation
+
+<details>
+<summary>Click to expand</summary>
 
 Scarab requires Python 3.7 or later to run. Additional dependencies can be found in the setup.py file.
 
@@ -56,12 +72,17 @@ You should see a list of commands displayed to the screen like the following:
 ### Run an example
 
 You can also verify the installation by running one of the examples:
+</details>
 
 ## Available Scripts
 
+<details>
+<summary>Click to expand</summary>
+
 After installing the Scarab package, the following command-line scripts are available:
 
-### scarab-beehive
+<details>
+<summary><strong>scarab-beehive</strong></summary>
 
 Runs the beehive simulation with a web UI that visualizes bees warming and cooling a hive.
 
@@ -73,8 +94,10 @@ Arguments:
 - `config`: Optional path to a TOML configuration file (defaults to the bundled example.toml)
 
 The simulation opens a web browser to display the UI at http://localhost:8888.
+</details>
 
-### scarab-simple-sim
+<details>
+<summary><strong>scarab-simple-sim</strong></summary>
 
 Runs a simple simulation with basic entities that monitor each other and generate events.
 
@@ -88,8 +111,10 @@ Arguments:
 - `--steps`: Number of simulation steps (default: 10)
 - `--step-length`: Length of each step in milliseconds (default: 5)
 - `--entities`: Number of entities to create (default: 10)
+</details>
 
-### scarab-ws-cli
+<details>
+<summary><strong>scarab-ws-cli</strong></summary>
 
 Provides a command-line interface for controlling simulations via WebSocket.
 
@@ -108,8 +133,10 @@ Available commands:
 - `resume`: Resumes simulation execution
 - `shutdown`: Shuts down the simulation
 - `exit`: Exits the CLI
+</details>
 
-### scarab-ws-event-logger
+<details>
+<summary><strong>scarab-ws-event-logger</strong></summary>
 
 Connects to a simulation's WebSocket server and logs all events to the console.
 
@@ -120,10 +147,16 @@ scarab-ws-event-logger [--host HOST] [--port PORT]
 Arguments:
 - `--host`: WebSocket host (default: localhost)
 - `--port`: WebSocket port (default: 1234)
+</details>
+</details>
 
-## Scarab concepts
+## Scarab Concepts
 
-### Simulation
+<details>
+<summary>Click to expand</summary>
+
+<details>
+<summary><strong>Simulation</strong></summary>
 
 A simulation is a container for entities. It manages the lifecycle of entities as well as the routing of events
 and messages between entities.
@@ -133,8 +166,10 @@ with Simulation() as sim:
     # add entities
     sim.run() 
 ~~~
+</details>
 
-### Events
+<details>
+<summary><strong>Events</strong></summary>
 
 Events are simply a message with properties that occur at a given time.
 
@@ -150,8 +185,10 @@ Events are simply a message with properties that occur at a given time.
     "sim_time": 0
 }
 ~~~
+</details>
 
-### Entities
+<details>
+<summary><strong>Entities</strong></summary>
 
 Entities are individual models that contain state and respond to events in the simulation. Entities
 receive events by registering handlers for events. When an event is sent in the simulation, the simulation
@@ -175,7 +212,7 @@ Handles the notification that an entity was created. The entity is not the origi
 of the entity's public properties.
 
 ~~~
-@entity_destroyed_event_handler(entity_nane="some-entity")<br/>
+@entity_destroyed_event_handler(entity_nane="some-entity")
 handle_some_entity_destroyed(self, entity):
 ~~~
 
@@ -183,7 +220,7 @@ Handles the notification that an entity was destroyed (removed from the simulati
 object, but rather a representation of the entity's public properties.
 
 ~~~
-@entity_changed_event_handler(entity_nane="some-entity")<br/>
+@entity_changed_event_handler(entity_nane="some-entity")
 handle_some_entity_changed(self, entity, changed_properties):
 ~~~
 
@@ -191,7 +228,7 @@ Handles the notification that an entity's properties changed. The entity is not 
 representation of the entity's public properties. The changed_properties is a list of the properties that changed.
 
 ~~~
-@time_update_event_handler()<br/>
+@time_update_event_handler()
 handle_time_update(self, new_time, previous_time):
 ~~~
 
@@ -199,38 +236,52 @@ Handles notification of time changes in the simulation. The new time is the new 
 previous_time is the time of the last update.
 
 ~~~
-`@simulation_shutdown_event_handler()<br/>
+@simulation_shutdown_event_handler()
 handle_simulation_shutdown(self):
 ~~~
 
 Handles the notification that the simulation is shutting down.
 
 ~~~
-@event_handler(event_name="some-event")<br/>
+@event_handler(event_name="some-event")
 handle_event(self, event):
 ~~~
 
 Defines a handler for a given event name. This handler is the default for all events and is used when a more
 specific handler isn't available. Note that it is possible to write complete simulations that do not use this handler
 since the specific handlers are sufficient.
+</details>
+</details>
 
 ## UI
+
+<details>
+<summary>Click to expand</summary>
 
 You have a number of options for the UI. Some simulations will run and then print results, some might print results
 during execution to the console. However, by default the simulation will open a websocket server and send all events
 that are generated. This allows you to create a wide variety of UIs, in particular using web clients. The `beehive`
 simulation has a web client that uses the websocket approach.
+</details>
 
 ## Examples
 
+<details>
+<summary>Click to expand</summary>
+
 [Beehive Simulation](./scarab/examples/beehive/README.md)
+</details>
 
 ## Releases
+
+<details>
+<summary>Click to expand</summary>
 
 Releases are planned around specific sets of functionality. In addition to the high level theme, new and
 improved examples are also planned. There are no specific release dates or timelines since this is a passion project.
 
-### Version 1.0 (Complete)
+<details>
+<summary><strong>Version 1.0 (Complete)</strong></summary>
 
 Theme: Minimum Viable Product (MVP)
 
@@ -244,8 +295,10 @@ Main features:
 * Event interest and routing
 * Websocket for controllers and UIs.
 * Test simulation for testing entities.
+</details>
 
-### Version 2.0
+<details>
+<summary><strong>Version 2.0</strong></summary>
 
 Theme: Increased entity behavior and ease of development
 
@@ -257,10 +310,14 @@ UIs easier. Some features planned include:
 * Add a JS (TS?) library for UI development. Currently, web UIs must parse and handle events from JSON.
 * Additional example sim to demonstrate the new features.
 * A tutorial to help users learn to use the framework.
+</details>
 
-### Version 3.0
+<details>
+<summary><strong>Version 3.0</strong></summary>
 
 Theme:  Simulation completeness
 
 The focus of version 3.0 is to add any remaining features to enable complete simulation development, including
 verification and validation and testing.
+</details>
+</details>
