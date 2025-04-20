@@ -24,6 +24,7 @@ acceleration, etc.
 - [UI](#ui)
 - [Examples](#examples)
 - [Releases](#releases)
+- [Development Notes](#development-notes)
 
 ## License
 
@@ -320,4 +321,38 @@ Theme:  Simulation completeness
 The focus of version 3.0 is to add any remaining features to enable complete simulation development, including
 verification and validation and testing.
 </details>
+</details>
+
+## Development Notes
+
+<details>
+<summary>Click to expand</summary>
+
+### Ignoring Duplicate Code Warnings for Build Directory
+
+If you're using PyCharm or another JetBrains IDE and seeing duplicate code warnings for files in the `build` directory, follow these steps to ignore them:
+
+1. Go to **File > Settings** (or **PyCharm > Preferences** on macOS)
+2. Navigate to **Editor > Inspections**
+3. Check the box to enable **Project Profile** (instead of using the default profile)
+4. Find **General > Duplicated Code** in the list of inspections
+5. Click on the **Scope** dropdown and select **Custom**
+6. Click the **...** button next to the scope dropdown
+7. Create a new scope by clicking the **+** button
+8. Name it something like "Non-Build Files"
+9. Select "Include" and set the file pattern to `file:*//*`
+10. Add an exclusion by clicking the **+** button in the Exclude section
+11. Set the exclusion pattern to `file:*/build//*`
+12. Click **OK** to save the scope
+13. Select your new "Non-Build Files" scope from the dropdown
+14. Click **Apply** and **OK** to save the inspection settings
+
+This configuration will exclude the `build` directory from duplicate code detection while still checking your actual source code.
+
+Alternatively, you can also mark the `build` directory as "Excluded" in your project structure:
+
+1. Right-click on the `build` directory in the Project view
+2. Select **Mark Directory as > Excluded**
+
+This will exclude the directory from indexing and inspections altogether.
 </details>
