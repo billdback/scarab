@@ -79,6 +79,48 @@ def test_event_router_generic_event():
     assert entity.nbr_generic_events == 1
 
 
+def test_event_router_self_notification_filtering():
+    """Tests that entities don't receive events about themselves."""
+    router = EventRouter()
+
+    # Create and register an entity
+    entity1 = TestEntity1(prop1="test", prop2=42)
+    entity1.scarab_id = "entity1-id"
+    router.register(entity1)
+
+    # Create another entity of the same type
+    entity1b = TestEntity1(prop1="test-other", prop2=99)
+    entity1b.scarab_id = "entity1b-id"
+
+    # Send events about entity1 - these should be filtered out
+    event = EntityCreatedEvent(sim_time=1, entity_props=scarab_properties(entity1))
+    router.sync_route(event)
+    assert entity1.nbr_self_created == 0, "Entity should not receive created events about itself"
+
+    entity1.prop1 = "updated"
+    event = EntityChangedEvent(sim_time=2, entity_props=scarab_properties(entity1), changed_props=['prop1'])
+    router.sync_route(event)
+    assert entity1.nbr_self_changed == 0, "Entity should not receive changed events about itself"
+
+    event = EntityDestroyedEvent(sim_time=3, entity_props=scarab_properties(entity1))
+    router.sync_route(event)
+    assert entity1.nbr_self_destroyed == 0, "Entity should not receive destroyed events about itself"
+
+    # Send events about entity1b - these should be received
+    event = EntityCreatedEvent(sim_time=4, entity_props=scarab_properties(entity1b))
+    router.sync_route(event)
+    assert entity1.nbr_self_created == 1, "Entity should receive created events about other entities of same type"
+
+    entity1b.prop1 = "updated-other"
+    event = EntityChangedEvent(sim_time=5, entity_props=scarab_properties(entity1b), changed_props=['prop1'])
+    router.sync_route(event)
+    assert entity1.nbr_self_changed == 1, "Entity should receive changed events about other entities of same type"
+
+    event = EntityDestroyedEvent(sim_time=6, entity_props=scarab_properties(entity1b))
+    router.sync_route(event)
+    assert entity1.nbr_self_destroyed == 1, "Entity should receive destroyed events about other entities of same type"
+
+
 def test_event_router_unregister_entity():
     """Tests removing entities from the event router."""
     router = EventRouter()

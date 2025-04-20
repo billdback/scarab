@@ -58,7 +58,8 @@ class EntityWrapper(Generic[T]):
             if hasattr(self, 'scarab_simulation'):
                 self.scarab_simulation.send_event(event)
             else:
-                raise AttributeError("Entity not added to a simulation yet. Add the entity to a simulation before sending events.")
+                raise AttributeError(
+                    "Entity not added to a simulation yet. Add the entity to a simulation before sending events.")
 
         instance.send_event = send_event.__get__(instance)
 

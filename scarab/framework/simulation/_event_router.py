@@ -338,6 +338,13 @@ class EventRouter:
         entity = getattr(event, 'entity', None)
         event_handlers = self._entity_created_handlers.get(entity.scarab_name, [])
         for h in event_handlers:
+            # Skip if the entity is receiving an event about itself
+            # Only filter if both entities have scarab_id attributes and the IDs match
+            if (hasattr(h.entity, 'scarab_id') and hasattr(entity, 'scarab_id') and 
+                h.entity.scarab_id is not None and entity.scarab_id is not None and 
+                h.entity.scarab_id == entity.scarab_id):
+                continue
+
             try:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
                 h.handler(event)
@@ -355,6 +362,13 @@ class EventRouter:
         entity = getattr(event, 'entity', None)
         event_handlers = self._entity_changed_handlers.get(entity.scarab_name, [])
         for h in event_handlers:
+            # Skip if the entity is receiving an event about itself
+            # Only filter if both entities have scarab_id attributes and the IDs match
+            if (hasattr(h.entity, 'scarab_id') and hasattr(entity, 'scarab_id') and 
+                h.entity.scarab_id is not None and entity.scarab_id is not None and 
+                h.entity.scarab_id == entity.scarab_id):
+                continue
+
             try:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
                 h.handler(event)
@@ -372,6 +386,13 @@ class EventRouter:
         entity = getattr(event, 'entity', None)
         event_handlers = self._entity_destroyed_handlers.get(entity.scarab_name, [])
         for h in event_handlers:
+            # Skip if the entity is receiving an event about itself
+            # Only filter if both entities have scarab_id attributes and the IDs match
+            if (hasattr(h.entity, 'scarab_id') and hasattr(entity, 'scarab_id') and 
+                h.entity.scarab_id is not None and entity.scarab_id is not None and 
+                h.entity.scarab_id == entity.scarab_id):
+                continue
+
             try:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
                 h.handler(event)

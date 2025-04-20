@@ -26,6 +26,12 @@ class TestEntity1:
         self.nbr_test2_entities = 0
         self.test_entity_2 = None
 
+        # For self-notification testing
+        self.nbr_self_created = 0
+        self.nbr_self_changed = 0
+        self.nbr_self_destroyed = 0
+        self.self_entity = None
+
         self.simulation_running = False
         self.simulation_time = 0
 
@@ -41,6 +47,12 @@ class TestEntity1:
         """Helper for testing to reset the entity to the init state."""
         self.nbr_test2_entities = 0
         self.test_entity_2 = None
+
+        # Reset self-notification counters
+        self.nbr_self_created = 0
+        self.nbr_self_changed = 0
+        self.nbr_self_destroyed = 0
+        self.self_entity = None
 
         self.simulation_running = False
         self.simulation_time = 0
@@ -105,6 +117,24 @@ class TestEntity1:
     def handle_generic(self, evt: Event):
         """Called when a generic event is sent."""
         self.nbr_generic_events += 1
+
+    @entity_created(entity_name='test1')
+    def self_entity_created(self, ce: EntityCreatedEvent):
+        """Called when a new test1 entity is created."""
+        self.nbr_self_created += 1
+        self.self_entity = ce.entity
+
+    @entity_changed(entity_name='test1')
+    def self_entity_changed(self, ue: EntityChangedEvent):
+        """Called when a test1 entity is updated."""
+        self.nbr_self_changed += 1
+        self.self_entity = ue.entity
+
+    @entity_destroyed(entity_name='test1')
+    def self_entity_destroyed(self, de: EntityDestroyedEvent):
+        """Called when a test1 entity is destroyed."""
+        self.nbr_self_destroyed += 1
+        self.self_entity = de.entity
 
 
 @dataclass
