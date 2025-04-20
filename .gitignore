@@ -1,0 +1,11 @@
+.idea
+*.egg-info/
+*.orig
+*.swp
+design
+dist/
+docs
+experiments
+__pycache__/
+venv
+build/
