@@ -44,7 +44,7 @@ class WSEventServer:
         return self._is_running
 
     # noinspection PyUnusedLocal
-    async def _handle_client(self, websocket, path):
+    async def _handle_client(self, websocket):
         # Register client connection
         self._clients.add(websocket)
         logger.debug(f"Client connected: {websocket.remote_address}")
@@ -131,7 +131,8 @@ class WSEventServer:
 
     async def _handle_client_message(self, message) -> None:
         """
-        Handles messages from the websocket clients.
+        Handles messages from the websocket clients.  Currently, this only handles commands to be able to
+        start/pause/shutdown the simulation.  The command is a single word.
         :param message: The message that the client sent.
         """
         logger.debug(f'Message from client: {message}')

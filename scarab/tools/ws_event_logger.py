@@ -62,9 +62,13 @@ async def receive_events(server_url) -> None:
                 return
 
 
-if __name__ == "__main__":
+def main():
+    """
+    Main entry point for the event logger.
+    Parses command line arguments and connects to the WebSocket server to log events.
+    """
     # get server_url and port as command line arguments
-    parser = argparse.ArgumentParser(description='Connect to a WebSocket and send commands.')
+    parser = argparse.ArgumentParser(description='Connect to a WebSocket and log events.')
     parser.add_argument('--host', default='localhost', help='WebSocket host (default: localhost)')
     parser.add_argument('--port', type=int, default=1234, help='WebSocket port (default: 1234)')
     args = parser.parse_args()
@@ -76,3 +80,7 @@ if __name__ == "__main__":
         asyncio.run(receive_events(ws_url))
     except KeyboardInterrupt:
         print('^C received, shutting down the logger.')
+
+
+if __name__ == "__main__":
+    main()

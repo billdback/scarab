@@ -9,6 +9,10 @@
 
 import {WSEventHandler} from "./ws_event_handler.js";
 
+// Allow the simulation to warm up for a couple of cycles so the charts don't start at 0.
+const WARMUP_CYCLES = 3;
+let cyclesSeen = 0;
+
 const load_app = () => {
     console.log("Beehive UI started.");
     updateView();
@@ -62,7 +66,7 @@ class BeeHiveStats {
         return Object.keys(this.bees).length;
     }
 
-    setOutdoorTemp(temp) {
+    setOutsideTemp(temp) {
         this.outside_temp = temp;
     }
 
@@ -196,20 +200,20 @@ ws.registerEventHandler("scarab.entity.created",
     (event) => stats.setHiveTemp(event.entity.current_temp));
 
 ws.registerEventHandler("scarab.entity.created",
-    (event) => event.entity.scarab_name === 'outside_temp',
-    (event) => stats.setOutdoorTemp(event.entity.current_temp));
+    (event) => event.entity.scarab_name === 'outside-temperature',
+    (event) => stats.setOutsideTemp(event.entity.current_temp));
 
-ws.registerEventHandler("scarab.entity.updated",
+ws.registerEventHandler("scarab.entity.changed",
     (event) => event.entity.scarab_name === 'bee',
     (event) => stats.addOrChangeBee(event.entity));
 
-ws.registerEventHandler("scarab.entity.updated",
+ws.registerEventHandler("scarab.entity.changed",
     (event) => event.entity.scarab_name === 'hive',
     (event) => stats.setHiveTemp(event.entity.current_temp));
 
-ws.registerEventHandler("scarab.entity.updated",
-    (event) => event.entity.scarab_name === 'outside_temp',
-    (event) => stats.setOutdoorTemp(event.entity.current_temp));
+ws.registerEventHandler("scarab.entity.changed",
+    (event) => event.entity.scarab_name === 'outside-temp',
+    (event) => stats.setOutsideTemp(event.entity.current_temp));
 
 ws.registerEventHandler("scarab.entity.deleted",
     (event) => event.entity.scarab_name === 'bee',
@@ -221,11 +225,23 @@ ws.registerEventHandler("scarab.entity.deleted",
 
 ws.registerEventHandler("scarab.entity.deleted",
     (event) => event.entity.scarab_name === 'outside-temperature',
-    (_) => stats.setOutdoorTemp(NaN));
+    (_) => stats.setOutsideTemp(NaN));
 
-ws.registerEventHandler("scarab.time.updated"),
-    (_) => true,
-    (event) => stats.timeChange(event.time)
+ws.registerEventHandler(
+    "scarab.time.updated",
+    () => true,
+    event => {
+        cyclesSeen += 1;
+        if (cyclesSeen <= WARMUP_CYCLES) {
+            console.log(`[warmup] cycle ${cyclesSeen} — skipping chart update`);
+            return;
+        }
+
+        // for cycle #6 and onward:
+        stats.timeChange(event.sim_time);
+        updateView();
+    }
+);
 
 await ws.connect();
 

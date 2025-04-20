@@ -35,6 +35,92 @@ pip install --upgrade git+https://github.com/billdback/scarab
 
 NOTE: it's recommended that you first create a virtual environment before installing.
 
+### Verifying the installation
+
+You can verify that they install works, by running the following commands:
+
+~~~
+python -m scarab.ws_event_logger
+python -m scarab.simple_sim
+~~~
+
+You should see a list of commands displayed to the screen like the following:
+
+~~~
+{"event_name": "scarab.entity.created", "sim_time": 1, "entity": {"scarab_name": "basic-entity", "scarab_id": "62d6dc1d-6289-452c-bb84-79a4f36113fd", "name": "basic-entity0", "number_entities": 10, "entity_changes": 0, "scarab_conforms_to": null}}
+{"event_name": "scarab.entity.created", "sim_time": 1, "entity": {"scarab_name": "basic-entity", "scarab_id": "99634958-9ac1-4a9f-b2b7-27d85c0dbea4", "name": "basic-entity1", "number_entities": 10, "entity_changes": 0, "scarab_conforms_to": null}}
+{"event_name": "scarab.entity.created", "sim_time": 1, "entity": {"scarab_name": "basic-entity", "scarab_id": "375b605f-b0c3-4245-b969-20e39746f40a", "name": "basic-entity2", "number_entities": 10, "entity_changes": 0, "scarab_conforms_to": null}}
+{"event_name": "scarab.entity.created", "sim_time": 1, "entity": {"scarab_name": "basic-entity", "scarab_id": "f5bd97a7-d58e-4657-878a-d919d28e23e5", "name": "basic-entity3", "number_entities": 10, "entity_changes": 0, "scarab_conforms_to": null}}
+~~~
+
+### Run an example
+
+You can also verify the installation by running one of the examples:
+
+## Available Scripts
+
+After installing the Scarab package, the following command-line scripts are available:
+
+### scarab-beehive
+
+Runs the beehive simulation with a web UI that visualizes bees warming and cooling a hive.
+
+```
+scarab-beehive [config]
+```
+
+Arguments:
+- `config`: Optional path to a TOML configuration file (defaults to the bundled example.toml)
+
+The simulation opens a web browser to display the UI at http://localhost:8888.
+
+### scarab-simple-sim
+
+Runs a simple simulation with basic entities that monitor each other and generate events.
+
+```
+scarab-simple-sim [--host HOST] [--port PORT] [--steps STEPS] [--step-length STEP_LENGTH] [--entities ENTITIES]
+```
+
+Arguments:
+- `--host`: WebSocket host (default: localhost)
+- `--port`: WebSocket port (default: 1234)
+- `--steps`: Number of simulation steps (default: 10)
+- `--step-length`: Length of each step in milliseconds (default: 5)
+- `--entities`: Number of entities to create (default: 10)
+
+### scarab-ws-cli
+
+Provides a command-line interface for controlling simulations via WebSocket.
+
+```
+scarab-ws-cli [--host HOST] [--port PORT]
+```
+
+Arguments:
+- `--host`: WebSocket host (default: localhost)
+- `--port`: WebSocket port (default: 1234)
+
+Available commands:
+- `help`: Shows the help message
+- `start`: Starts simulation execution
+- `pause`: Pauses simulation execution
+- `resume`: Resumes simulation execution
+- `shutdown`: Shuts down the simulation
+- `exit`: Exits the CLI
+
+### scarab-ws-event-logger
+
+Connects to a simulation's WebSocket server and logs all events to the console.
+
+```
+scarab-ws-event-logger [--host HOST] [--port PORT]
+```
+
+Arguments:
+- `--host`: WebSocket host (default: localhost)
+- `--port`: WebSocket port (default: 1234)
+
 ## Scarab concepts
 
 ### Simulation

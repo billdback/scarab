@@ -124,12 +124,31 @@ def run_sim(params: Dict) -> None:
             print(f"Parameter key error: {ke}. Fix the config file and try again.")
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="BeeHive simulation parameters")
-    parser.add_argument('config', metavar='TOML file',
-                        type=str, help='TOML file with beehive configuration.')
+def main():
+    # locate the shipped example.toml
+    from importlib import resources
+    with resources.path('scarab.examples.beehive', 'example.toml') as p:
+        default_toml = str(p)
+
+    import argparse, toml
+    parser = argparse.ArgumentParser(
+        description="Run the Beehive simulator (with web UI)."
+    )
+    parser.add_argument(
+        'config',
+        nargs='?',
+        default=default_toml,
+        help="Path to TOML config (defaults to bundled example.toml)"
+    )
     args = parser.parse_args()
 
-    params = parse_toml(toml_file_path=args.config)
+    try:
+        params = toml.loads(open(args.config).read())
+    except FileNotFoundError:
+        parser.error(f"Config file not found: {args.config}")
 
-    run_sim(params=params)
+    # call your existing run_sim()
+    run_sim(params)
+
+if __name__ == "__main__":
+    main()

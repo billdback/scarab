@@ -8,6 +8,7 @@ This is a simple simulation that generates events for the controller to see.  It
 constantly update to cause events to be generated every cycle.
 """
 
+import argparse
 from scarab.framework.entity import Entity, entity_created, entity_changed
 from scarab.framework.entity import EntityCreatedEvent, EntityChangedEvent
 from scarab.framework.simulation.simulation import Simulation
@@ -36,8 +37,25 @@ class SimpleEntity:
         self.number_entities += 1
 
 
-with Simulation(ws_host='localhost', ws_port=1234) as sim:
-    for i in range(0, 10):
-        sim.add_entity(SimpleEntity(name="basic-entity" + str(i)))
+def main():
+    """
+    Main entry point for the simple simulation.
+    Parses command line arguments and runs the simulation.
+    """
+    parser = argparse.ArgumentParser(description='Run a simple simulation with basic entities.')
+    parser.add_argument('--host', default='localhost', help='WebSocket host (default: localhost)')
+    parser.add_argument('--port', type=int, default=1234, help='WebSocket port (default: 1234)')
+    parser.add_argument('--steps', type=int, default=10, help='Number of simulation steps (default: 10)')
+    parser.add_argument('--step-length', type=int, default=5, help='Length of each step in milliseconds (default: 5)')
+    parser.add_argument('--entities', type=int, default=10, help='Number of entities to create (default: 10)')
+    args = parser.parse_args()
 
-    sim.run(nbr_steps=10, step_length=5)
+    with Simulation(ws_host=args.host, ws_port=args.port) as sim:
+        for i in range(0, args.entities):
+            sim.add_entity(SimpleEntity(name="basic-entity" + str(i)))
+
+        sim.run(nbr_steps=args.steps, step_length=args.step_length)
+
+
+if __name__ == "__main__":
+    main()

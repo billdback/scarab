@@ -93,21 +93,21 @@ export class WSEventHandler {
      * Sends a 'start' message to the WebSocket server.
      */
     start() {
-        this.sendMessage({ action: "start" });
+        this.sendMessage("start");
     }
 
     /**
      * Sends a 'pause' message to the WebSocket server.
      */
     pause() {
-        this.sendMessage({ action: "pause" });
+        this.sendMessage("pause");
     }
 
     /**
      * Sends a 'stop' message to the WebSocket server.
      */
     shutdown() {
-        this.sendMessage({ action: "shutdown" });
+        this.sendMessage("shutdown");
     }
 
     /**
@@ -133,6 +133,7 @@ export class WSEventHandler {
     handleMessage(messageEvent) {
         try {
             const data = JSON.parse(messageEvent.data);
+            console.log("Received message:", data);
             const eventName = data.event_name;
 
             if (!eventName || !this.eventHandlers[eventName]) {
