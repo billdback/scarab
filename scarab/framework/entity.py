@@ -56,12 +56,32 @@ class EntityWrapper(Generic[T]):
             :param event: The event to send.
             """
             if hasattr(self, 'scarab_simulation'):
+                # Set the sender_id of the event to this entity's ID
+                event.sender_id = self.scarab_id
                 self.scarab_simulation.send_event(event)
             else:
                 raise AttributeError(
                     "Entity not added to a simulation yet. Add the entity to a simulation before sending events.")
 
         instance.send_event = send_event.__get__(instance)
+
+        # Add send_command method to the instance
+        def send_command(self, event, scarab_id):
+            """
+            Sends a command (targeted event) to a specific entity.
+            :param event: The event to send.
+            :param scarab_id: The ID of the target entity.
+            """
+            if hasattr(self, 'scarab_simulation'):
+                # Set the target_id and sender_id of the event
+                event.target_id = scarab_id
+                event.sender_id = self.scarab_id
+                self.scarab_simulation.send_event(event)
+            else:
+                raise AttributeError(
+                    "Entity not added to a simulation yet. Add the entity to a simulation before sending commands.")
+
+        instance.send_command = send_command.__get__(instance)
 
         self._scarab_does_conform(instance)
 

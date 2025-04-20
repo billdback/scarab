@@ -27,9 +27,33 @@ def test_event_names():
 
 def test_base_event():
     """Tests the base event."""
+    # Test basic event
     evt = Event(event_name="test-event", sim_time=1)
     assert evt.event_name == 'test-event'
     assert evt.sim_time == 1
+    assert evt.sender_id is None
+    assert evt.target_id is None
+
+    # Test event with sender_id
+    evt = Event(event_name="test-event", sim_time=1, sender_id="123")
+    assert evt.event_name == 'test-event'
+    assert evt.sim_time == 1
+    assert evt.sender_id == "123"
+    assert evt.target_id is None
+
+    # Test event with target_id (command)
+    evt = Event(event_name="test-event", sim_time=1, target_id="456")
+    assert evt.event_name == 'test-event'
+    assert evt.sim_time == 1
+    assert evt.sender_id is None
+    assert evt.target_id == "456"
+
+    # Test event with both sender_id and target_id
+    evt = Event(event_name="test-event", sim_time=1, sender_id="123", target_id="456")
+    assert evt.event_name == 'test-event'
+    assert evt.sim_time == 1
+    assert evt.sender_id == "123"
+    assert evt.target_id == "456"
 
 
 def test_entity_created_event():
@@ -130,6 +154,18 @@ def test_convert_to_from_json():
     j = evt.to_json()
     assert j['event_name'] == 'test-event'
     assert j['sim_time'] == 1
+    assert 'sender_id' in j
+    assert j['sender_id'] is None
+    assert 'target_id' in j
+    assert j['target_id'] is None
+
+    # Event with sender_id and target_id
+    evt = Event(event_name='test-event', sim_time=1, sender_id="123", target_id="456")
+    j = evt.to_json()
+    assert j['event_name'] == 'test-event'
+    assert j['sim_time'] == 1
+    assert j['sender_id'] == "123"
+    assert j['target_id'] == "456"
 
     # Entity events
     evt = EntityCreatedEvent(entity_props=scarab_properties(entity))

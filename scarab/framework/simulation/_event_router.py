@@ -345,6 +345,11 @@ class EventRouter:
                 h.entity.scarab_id == entity.scarab_id):
                 continue
 
+            # If this is a targeted command (has target_id), only send to the targeted entity
+            if hasattr(event, 'target_id') and event.target_id is not None:
+                if h.entity.scarab_id != event.target_id:
+                    continue  # Skip entities that don't match the target_id
+
             try:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
                 h.handler(event)
@@ -368,6 +373,11 @@ class EventRouter:
                 h.entity.scarab_id is not None and entity.scarab_id is not None and 
                 h.entity.scarab_id == entity.scarab_id):
                 continue
+
+            # If this is a targeted command (has target_id), only send to the targeted entity
+            if hasattr(event, 'target_id') and event.target_id is not None:
+                if h.entity.scarab_id != event.target_id:
+                    continue  # Skip entities that don't match the target_id
 
             try:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
@@ -393,6 +403,11 @@ class EventRouter:
                 h.entity.scarab_id == entity.scarab_id):
                 continue
 
+            # If this is a targeted command (has target_id), only send to the targeted entity
+            if hasattr(event, 'target_id') and event.target_id is not None:
+                if h.entity.scarab_id != event.target_id:
+                    continue  # Skip entities that don't match the target_id
+
             try:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
                 h.handler(event)
@@ -407,6 +422,11 @@ class EventRouter:
         assert event.event_name == ScarabEventType.SIMULATION_START
 
         for h in self._simulation_start_handlers:
+            # If this is a targeted command (has target_id), only send to the targeted entity
+            if hasattr(event, 'target_id') and event.target_id is not None:
+                if h.entity.scarab_id != event.target_id:
+                    continue  # Skip entities that don't match the target_id
+
             try:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
                 h.handler(event)
@@ -421,6 +441,11 @@ class EventRouter:
         assert event.event_name == ScarabEventType.SIMULATION_PAUSE
 
         for h in self._simulation_pause_handlers:
+            # If this is a targeted command (has target_id), only send to the targeted entity
+            if hasattr(event, 'target_id') and event.target_id is not None:
+                if h.entity.scarab_id != event.target_id:
+                    continue  # Skip entities that don't match the target_id
+
             try:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
                 h.handler(event)
@@ -435,6 +460,11 @@ class EventRouter:
         assert event.event_name == ScarabEventType.SIMULATION_RESUME
 
         for h in self._simulation_resume_handlers:
+            # If this is a targeted command (has target_id), only send to the targeted entity
+            if hasattr(event, 'target_id') and event.target_id is not None:
+                if h.entity.scarab_id != event.target_id:
+                    continue  # Skip entities that don't match the target_id
+
             try:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
                 h.handler(event)
@@ -449,6 +479,11 @@ class EventRouter:
         assert event.event_name == ScarabEventType.SIMULATION_SHUTDOWN
 
         for h in self._simulation_shutdown_handlers:
+            # If this is a targeted command (has target_id), only send to the targeted entity
+            if hasattr(event, 'target_id') and event.target_id is not None:
+                if h.entity.scarab_id != event.target_id:
+                    continue  # Skip entities that don't match the target_id
+
             try:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
                 h.handler(event)
@@ -463,6 +498,11 @@ class EventRouter:
         assert event.event_name == ScarabEventType.TIME_UPDATED
 
         for h in self._time_updated_handlers:
+            # If this is a targeted command (has target_id), only send to the targeted entity
+            if hasattr(event, 'target_id') and event.target_id is not None:
+                if h.entity.scarab_id != event.target_id:
+                    continue  # Skip entities that don't match the target_id
+
             try:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
                 h.handler(event)
@@ -477,6 +517,11 @@ class EventRouter:
         # event handlers are stored by event name of event to be handled.
         event_handlers = self._named_event_handlers.get(event.event_name, [])
         for h in event_handlers:
+            # If this is a targeted command (has target_id), only send to the targeted entity
+            if hasattr(event, 'target_id') and event.target_id is not None:
+                if h.entity.scarab_id != event.target_id:
+                    continue  # Skip entities that don't match the target_id
+
             try:
                 self.log_event(sent_to=self._get_sent_to_from_handler(h), event=event)
                 h.handler(event)

@@ -325,6 +325,10 @@ class Simulation:
         immediately.  All other events are sent at the next time.
         :param event:  The event to send.
         """
+        # Set sender_id to 0 for events sent by the simulation if not already set
+        if event.sender_id is None:
+            event.sender_id = "0"  # Use string "0" to be consistent with scarab_id type
+
         if event.event_name in Simulation._immediate_events:
             event.sim_time = self._current_time
             self._route_event(event)

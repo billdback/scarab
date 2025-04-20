@@ -37,14 +37,18 @@ class Event:
     Base event type.
     """
 
-    def __init__(self, event_name: str, sim_time: int = None):
+    def __init__(self, event_name: str, sim_time: int = None, target_id: str = None, sender_id: str = None):
         """
         Creates a new event.
         :param event_name: Name of the event.
         :param sim_time: Time the event occurred.  If the time is None, then the current time is used.
+        :param target_id: If provided, the event is a command targeted at a specific entity.
+        :param sender_id: ID of the entity that sent the event. 0 for events sent by the simulation.
         """
         self.event_name = event_name
         self.sim_time = sim_time
+        self.target_id = target_id
+        self.sender_id = sender_id
 
     def to_json(self) -> Dict[str, Any]:
         """Converts the event to JSON.  All public attributes will be returned."""
