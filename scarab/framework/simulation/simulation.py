@@ -300,18 +300,24 @@ class Simulation:
         Causes the simulation to pause.
         """
         self._current_state = SimulationState.paused
+        # Send a pause event to notify all entities and clients
+        self.send_event(SimulationPauseEvent(self._current_time))
 
     def resume(self) -> None:
         """
         Causes the simulation to resume.
         """
         self._current_state = SimulationState.running
+        # Send a resume event to notify all entities and clients
+        self.send_event(SimulationResumeEvent(self._current_time))
 
     def shutdown(self) -> None:
         """
         Causes the simulation to shut down.
         """
         self._current_state = SimulationState.shutting_down
+        # Send a shutdown event to notify all entities and clients
+        self.send_event(SimulationShutdownEvent(self._current_time))
 
     # ####################################   Entity and event handling.  #####################################
 
@@ -370,7 +376,7 @@ class Simulation:
         for entity_id, entity in self._entities.items():
             if entity_id != new_entity.scarab_id:
                 # Create a targeted entity created event
-                event = EntityCreatedEvent(entity_props=scarab_properties(entity), sim_time=self._current_time)
+                event = EntityCreatedEvent(entity_props=scarab_properties(entity), sim_time=self._current_time + 1)
                 event.target_id = new_entity.scarab_id
                 self.send_event(event)
 

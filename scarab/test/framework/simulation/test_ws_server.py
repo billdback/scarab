@@ -299,23 +299,28 @@ class TestWSEventServer:
 
         # Mock the _send_all_entities method to avoid that part of the code
         with patch.object(ws_server, '_send_all_entities', new_callable=AsyncMock) as mock_send:
-            # Let's try a simpler approach - directly patch the websocket's methods
-            # Make __aiter__ return the websocket itself
-            websocket.__aiter__ = AsyncMock(return_value=websocket)
+            # Patch the websockets module in _ws_server.py
+            with patch('scarab.framework.simulation._ws_server.websockets') as mock_websockets:
+                # Set up the mock websockets module
+                mock_websockets.ConnectionClosed = MockConnectionClosed
 
-            # Make __anext__ raise ConnectionClosed when called
-            websocket.__anext__ = AsyncMock(side_effect=websockets.ConnectionClosed(1000, "Test close"))
+                # Set up the websocket to raise ConnectionClosed when iterated
+                async def mock_aiter():
+                    raise MockConnectionClosed(1000, "Test close")
+                    yield  # This line is never reached, but needed for the generator
 
-            # Mock the logger to verify it's called
-            with patch('scarab.framework.simulation._ws_server.logger.debug') as mock_logger:
-                # Call _handle_client
-                await ws_server._handle_client(websocket)
+                websocket.__aiter__.side_effect = mock_aiter
 
-                # Verify logger.debug was called with the client disconnected message
-                mock_logger.assert_any_call(f"Client disconnected: {websocket.remote_address}")
+                # Mock the logger to verify it's called
+                with patch('scarab.framework.simulation._ws_server.logger.debug') as mock_logger:
+                    # Call _handle_client
+                    await ws_server._handle_client(websocket)
 
-                # Verify the client was added and then removed
-                assert websocket not in ws_server._clients
+                    # Verify logger.debug was called with the client disconnected message
+                    mock_logger.assert_any_call(f"Client disconnected: {websocket.remote_address}")
+
+                    # Verify the client was added and then removed
+                    assert websocket not in ws_server._clients
 
     @pytest.mark.asyncio
     async def test_run_server(self, ws_server):

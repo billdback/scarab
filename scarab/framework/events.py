@@ -9,7 +9,7 @@ Contains standard events for the simulation.
 
 from enum import StrEnum
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Type
 from types import SimpleNamespace
 
 from scarab.framework.utils import serialize
@@ -184,3 +184,51 @@ class TimeUpdatedEvent(Event):
         if self.previous_time >= sim_time:
             raise ValueError(
                 f"Attempting to update from current or future time: {self.previous_time} to {self.sim_time}")
+
+
+class EventFactory:
+    """
+    Factory for creating events from JSON data.
+    """
+
+    @staticmethod
+    def create_event_from_json(json_data: Dict[str, Any]) -> Optional[Event]:
+        """
+        Creates an event from JSON data.
+        :param json_data: The JSON data to convert to an event.
+        :return: An event object or None if the event type is not recognized.
+        """
+        if not isinstance(json_data, dict):
+            try:
+                json_data = json.loads(json_data)
+            except (TypeError, json.JSONDecodeError):
+                return None
+
+        event_name = json_data.get('event_name')
+        sim_time = json_data.get('sim_time')
+        target_id = json_data.get('target_id')
+        sender_id = json_data.get('sender_id')
+
+        # Handle standard simulation control events
+        if event_name == ScarabEventType.SIMULATION_START:
+            return SimulationStartEvent(sim_time)
+        elif event_name == ScarabEventType.SIMULATION_PAUSE:
+            return SimulationPauseEvent(sim_time)
+        elif event_name == ScarabEventType.SIMULATION_RESUME:
+            return SimulationResumeEvent(sim_time)
+        elif event_name == ScarabEventType.SIMULATION_SHUTDOWN:
+            return SimulationShutdownEvent(sim_time)
+        elif event_name == ScarabEventType.ENTITY_CREATED and 'entity' in json_data:
+            entity_props = vars(json_data['entity']) if hasattr(json_data['entity'], '__dict__') else json_data['entity']
+            return EntityCreatedEvent(entity_props, sim_time)
+        elif event_name == ScarabEventType.ENTITY_CHANGED and 'entity' in json_data and 'changed_properties' in json_data:
+            entity_props = vars(json_data['entity']) if hasattr(json_data['entity'], '__dict__') else json_data['entity']
+            return EntityChangedEvent(entity_props, json_data['changed_properties'], sim_time)
+        elif event_name == ScarabEventType.ENTITY_DESTROYED and 'entity' in json_data:
+            entity_props = vars(json_data['entity']) if hasattr(json_data['entity'], '__dict__') else json_data['entity']
+            return EntityDestroyedEvent(entity_props, sim_time)
+        elif event_name == ScarabEventType.TIME_UPDATED and 'previous_time' in json_data:
+            return TimeUpdatedEvent(sim_time, json_data['previous_time'])
+        else:
+            # For any other event, create a generic Event
+            return Event(event_name, sim_time, target_id, sender_id)

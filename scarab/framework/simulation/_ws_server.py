@@ -12,7 +12,7 @@ import logging
 import websockets
 
 from scarab.framework.entity import scarab_properties
-from scarab.framework.events import Event, EntityCreatedEvent
+from scarab.framework.events import Event, EntityCreatedEvent, EventFactory, ScarabEventType
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -131,18 +131,37 @@ class WSEventServer:
 
     async def _handle_client_message(self, message) -> None:
         """
-        Handles messages from the websocket clients.  Currently, this only handles commands to be able to
-        start/pause/shutdown the simulation.  The command is a single word.
+        Handles messages from the websocket clients. Expects JSON formatted events.
+        For simulation management events (start, pause, shutdown), it will call the appropriate
+        simulation method. All events are also sent to the simulation for distribution to other clients.
         :param message: The message that the client sent.
         """
         logger.debug(f'Message from client: {message}')
 
-        # sim should be already running, so start is just resume.
-        if message == 'start' or message == 'resume':
-            self._sim_owner.resume()
-        elif message == 'pause':
-            self._sim_owner.pause()
-        elif message == 'shutdown':
-            self._sim_owner.shutdown()
-        else:
-            print(f'Unknown command {message}')
+        try:
+            # Try to parse as JSON first
+            event = EventFactory.create_event_from_json(message)
+
+            if event:
+                # Handle simulation management events
+                if event.event_name == ScarabEventType.SIMULATION_START or event.event_name == ScarabEventType.SIMULATION_RESUME:
+                    self._sim_owner.resume()
+                elif event.event_name == ScarabEventType.SIMULATION_PAUSE:
+                    self._sim_owner.pause()
+                elif event.event_name == ScarabEventType.SIMULATION_SHUTDOWN:
+                    self._sim_owner.shutdown()
+
+                # Send the event to the simulation for distribution to other clients
+                self._sim_owner.send_event(event)
+            else:
+                # For backward compatibility, handle simple string commands
+                if message == 'start' or message == 'resume':
+                    self._sim_owner.resume()
+                elif message == 'pause':
+                    self._sim_owner.pause()
+                elif message == 'shutdown':
+                    self._sim_owner.shutdown()
+                else:
+                    print(f'Unknown command {message}')
+        except Exception as e:
+            logger.error(f'Error handling client message: {e}')

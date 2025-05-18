@@ -28,3 +28,7 @@ find = { include = ["scarab*"], exclude = ["images", "experiments"] }
 "scarab.examples.beehive" = ["example.toml"]
 # include *all* files in webui (css, js, html, ico, etc)
 "scarab.examples.beehive.webui" = ["*"]
+
+# Configure pytest
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"

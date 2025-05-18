@@ -90,24 +90,36 @@ export class WSEventHandler {
     }
 
     /**
-     * Sends a 'start' message to the WebSocket server.
+     * Sends a simulation start event to the WebSocket server.
      */
     start() {
-        this.sendMessage("start");
+        const event = {
+            event_name: "scarab.simulation.start",
+            sim_time: null
+        };
+        this.sendMessage(event);
     }
 
     /**
-     * Sends a 'pause' message to the WebSocket server.
+     * Sends a simulation pause event to the WebSocket server.
      */
     pause() {
-        this.sendMessage("pause");
+        const event = {
+            event_name: "scarab.simulation.pause",
+            sim_time: null
+        };
+        this.sendMessage(event);
     }
 
     /**
-     * Sends a 'stop' message to the WebSocket server.
+     * Sends a simulation shutdown event to the WebSocket server.
      */
     shutdown() {
-        this.sendMessage("shutdown");
+        const event = {
+            event_name: "scarab.simulation.shutdown",
+            sim_time: null
+        };
+        this.sendMessage(event);
     }
 
     /**
